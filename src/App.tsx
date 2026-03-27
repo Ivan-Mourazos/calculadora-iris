@@ -17,6 +17,7 @@ interface Toldo {
   lacado: string;
   measurements: Measurements;
   result: ValidationResult | null;
+  isOfConfirmed?: boolean;
 }
 
 function App() {
@@ -225,14 +226,41 @@ function App() {
                   <h3 className="text-xl font-black text-slate-900">Toldo {index + 1}</h3>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex items-center gap-2">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 flex items-center gap-2 shadow-inner transition-all duration-300 min-w-[120px] justify-end">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">OF</span>
-                    <input 
-                      value={toldo.of}
-                      onChange={e => updateToldo(toldo.id, { of: e.target.value })}
-                      placeholder="00000"
-                      className="bg-transparent text-sm font-bold text-slate-900 outline-none w-16 text-right"
-                    />
+                    {toldo.isOfConfirmed ? (
+                      <div className="flex items-center gap-2 group/of">
+                        <span className="text-sm font-black text-blue-600 font-mono tracking-tighter">{toldo.of || '---'}</span>
+                        <button 
+                          onClick={() => updateToldo(toldo.id, { isOfConfirmed: false })}
+                          className="p-1 text-slate-300 hover:text-blue-500 transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          value={toldo.of}
+                          autoFocus={toldo.of === ''}
+                          onChange={e => updateToldo(toldo.id, { of: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && toldo.of && updateToldo(toldo.id, { isOfConfirmed: true })}
+                          onBlur={() => toldo.of && updateToldo(toldo.id, { isOfConfirmed: true })}
+                          placeholder="00000"
+                          className="bg-transparent text-sm font-bold text-slate-900 outline-none w-14 text-right placeholder:text-slate-200"
+                        />
+                        {toldo.of && (
+                          <button 
+                            onClick={() => updateToldo(toldo.id, { isOfConfirmed: true })}
+                            className="p-1 text-emerald-500 hover:bg-emerald-50 rounded-md transition-all shadow-sm border border-emerald-100 bg-white"
+                          >
+                            <CheckCircle size={14} strokeWidth={3} />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {toldos.length > 1 && (
                     <button onClick={() => removeToldo(toldo.id)} className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
