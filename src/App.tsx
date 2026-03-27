@@ -40,10 +40,10 @@ function App() {
       cofre: '',
       guia: '',
       mecanismo: '',
-      swbs: '',
+      swbs: 'Non',
       entreParedes: '',
       tela: '',
-      cristal: '',
+      cristal: 'Non',
       lacado: '',
       measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 },
       result: null
@@ -60,10 +60,10 @@ function App() {
         cofre: '',
         guia: '',
         mecanismo: '',
-        swbs: '',
+        swbs: 'Non',
         entreParedes: '',
         tela: '',
-        cristal: '',
+        cristal: 'Non',
         lacado: '',
         measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 },
         result: null
@@ -273,40 +273,7 @@ function App() {
               </div>
 
               <div className="space-y-4 mt-6">
-                {/* ACORDEÓN 1: MATERIAL */}
-                <div className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isMaterialCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
-                  <div 
-                    onClick={() => updateToldo(toldo.id, { isMaterialCollapsed: !toldo.isMaterialCollapsed })}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-xl text-amber-600 ${toldo.isMaterialCollapsed ? 'bg-slate-100' : 'bg-amber-50'}`}>
-                        <Palette size={18} />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Materiais</h4>
-                        {toldo.isMaterialCollapsed && (
-                          <p className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
-                            {toldo.tela || 'Sen lona'} · {toldo.lacado || 'Sen lacado'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isMaterialCollapsed ? '' : 'rotate-180'}`} />
-                  </div>
-
-                  {!toldo.isMaterialCollapsed && (
-                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[100] pb-10">
-                      <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
-                      <div className="grid grid-cols-2 gap-4">
-                        <Select label="Cristal" value={toldo.cristal} options={['Non', 'Si']} onChange={v => updateToldo(toldo.id, { cristal: v })} />
-                        <Select label="Lacado (estrutura)" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ACORDEÓN 2: MODELO */}
+                {/* ACORDEÓN 1: MODELO E CONFIGURACIÓN */}
                 <div className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isModelCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
                   <div 
                     onClick={() => updateToldo(toldo.id, { isModelCollapsed: !toldo.isModelCollapsed })}
@@ -329,7 +296,7 @@ function App() {
                   </div>
 
                   {!toldo.isModelCollapsed && (
-                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[90] pb-10">
+                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[100] pb-10">
                       <div className="space-y-5">
                         <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
                         <div className="grid grid-cols-2 gap-4">
@@ -343,6 +310,39 @@ function App() {
                           <Select label="SWBS" value={toldo.swbs} options={['Si', 'Non']} onChange={v => updateToldo(toldo.id, { swbs: v })} />
                           <Select label="Entre paredes" value={toldo.entreParedes} options={catalog.entreParedes} onChange={v => updateToldo(toldo.id, { entreParedes: v })} />
                         </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ACORDEÓN 2: MATERIAIS */}
+                <div className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isMaterialCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
+                  <div 
+                    onClick={() => updateToldo(toldo.id, { isMaterialCollapsed: !toldo.isMaterialCollapsed })}
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-xl text-amber-600 ${toldo.isMaterialCollapsed ? 'bg-slate-100' : 'bg-amber-50'}`}>
+                        <Palette size={18} />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Materiais</h4>
+                        {toldo.isMaterialCollapsed && (
+                          <p className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
+                            {toldo.tela || 'Sen lona'} · {toldo.lacado || 'Sen lacado'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isMaterialCollapsed ? '' : 'rotate-180'}`} />
+                  </div>
+
+                  {!toldo.isMaterialCollapsed && (
+                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[90] pb-10">
+                      <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Select label="Cristal" value={toldo.cristal} options={['Non', 'Si']} onChange={v => updateToldo(toldo.id, { cristal: v })} />
+                        <Select label="Lacado (estrutura)" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
                       </div>
                     </div>
                   )}
