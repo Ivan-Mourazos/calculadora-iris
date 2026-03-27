@@ -38,15 +38,15 @@ function App() {
     {
       id: crypto.randomUUID(),
       of: '',
-      modelo: catalog.modelos[0],
-      cofre: catalog.cofre[0],
-      guia: catalog.guiaCompensadora[0],
-      mecanismo: catalog.mecanismo[0],
-      swbs: catalog.swbs[0],
-      entreParedes: catalog.entreParedes[0],
-      tela: catalog.telas[0],
-      cristal: catalog.cristal[0],
-      lacado: catalog.lacados[0],
+      modelo: '',
+      cofre: '',
+      guia: '',
+      mecanismo: '',
+      swbs: '',
+      entreParedes: '',
+      tela: '',
+      cristal: '',
+      lacado: '',
       measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 },
       result: null
     }
@@ -58,15 +58,15 @@ function App() {
       {
         id: crypto.randomUUID(),
         of: '',
-        modelo: catalog.modelos[0],
-        cofre: catalog.cofre[0],
-        guia: catalog.guiaCompensadora[0],
-        mecanismo: catalog.mecanismo[0],
-        swbs: catalog.swbs[0],
-        entreParedes: catalog.entreParedes[0],
-        tela: catalog.telas[0],
-        cristal: catalog.cristal[0],
-        lacado: catalog.lacados[0],
+        modelo: '',
+        cofre: '',
+        guia: '',
+        mecanismo: '',
+        swbs: '',
+        entreParedes: '',
+        tela: '',
+        cristal: '',
+        lacado: '',
         measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 },
         result: null
       }
@@ -97,25 +97,30 @@ function App() {
     }))
   }
 
-  const isOrderBlocked = toldos.some(t => t.result?.status === 'ROJO' || t.result?.status === 'ERROR')
+  const isOrderBlocked = toldos.some(t => t.result?.status === 'VERMELLO' || t.result?.status === 'ERROR')
   const isOrderEmpty = toldos.some(t => !t.result)
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans pb-32">
       {/* Header Premium */}
-      <header className="bg-white border-b border-slate-200 px-6 py-6 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-[#FBAB18]/10 p-2 rounded-2xl">
-              <img src="https://www.toldosgomez.com/images/logo.png" alt="TGM Logo" className="h-10 w-auto object-contain" />
+      <header className="bg-white/90 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4 border-r border-slate-200 pr-3 sm:pr-6">
+              <img src="/faviconTGM.png" alt="TGM Logo" className="h-8 sm:h-10 w-auto object-contain brightness-110 drop-shadow-sm" />
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-0.5 sm:mb-1 truncate">
                 Calculadora Iris
-                <span className="text-[10px] bg-[#FBAB18] text-white px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Pro</span>
               </h1>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Xestión de Medidas Toldos Gómez</p>
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest sm:tracking-[0.2em] truncate">
+                Toldos Gómez
+              </p>
             </div>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+             <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 animate-pulse" />
+             <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Activo</span>
           </div>
         </div>
       </header>
@@ -189,7 +194,7 @@ function App() {
                     Materiais e Acabados
                   </h3>
                   <div className="grid grid-cols-1 gap-4">
-                    <Select label="Tela / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
+                    <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
                     <Select label="Lacado / RAL" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
                   </div>
                 </div>
@@ -229,20 +234,66 @@ function App() {
 }
 
 function Select({ label, value, options, onChange, search = false }: { label: string, value: string, options: string[], onChange: (v: string) => void, search?: boolean }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
-    <div className="flex flex-col gap-2 flex-1 group">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1 transition-colors group-focus-within:text-[#FBAB18]">{label}</label>
-      <div className="relative">
-        <select 
-          value={value} 
-          onChange={e => onChange(e.target.value)}
-          className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm focus:border-[#FBAB18] focus:shadow-[0_8px_30px_rgb(251,171,24,0.12)] outline-none transition-all appearance-none cursor-pointer hover:border-slate-300 text-slate-900 shadow-sm"
-        >
-          {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-          <ChevronRight size={16} strokeWidth={3} className="rotate-90" />
+    <div className="flex flex-col gap-1.5 flex-1 group relative">
+      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1.5 transition-colors group-focus-within:text-[#FBAB18]">{label}</label>
+      <div className="relative" onClick={() => {
+        setIsOpen(!isOpen)
+        if (!isOpen) setSearchTerm('')
+      }}>
+        <input 
+          type="text"
+          inputMode="search"
+          enterKeyHint="done"
+          readOnly={!isOpen && !search}
+          value={isOpen ? searchTerm : value}
+          onFocus={() => {
+            if (!isOpen) {
+              setIsOpen(true)
+              setSearchTerm('')
+            }
+          }}
+          onBlur={() => setTimeout(() => setIsOpen(false), 250)}
+          onChange={e => {
+            e.stopPropagation()
+            setSearchTerm(e.target.value)
+          }}
+          placeholder="Seleccione ou busque..."
+          className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all hover:border-slate-300 text-slate-900 shadow-sm cursor-pointer"
+        />
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300 group-focus-within:text-[#FBAB18] transition-colors">
+          <ChevronRight size={18} strokeWidth={3} className={isOpen ? '-rotate-90' : 'rotate-90'} />
         </div>
+        
+        {isOpen && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[60] max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => {
+                    onChange(opt)
+                    setIsOpen(false)
+                  }}
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-amber-50 transition-colors border-b border-slate-50 last:border-0 ${value === opt ? 'text-[#FBAB18] font-black bg-amber-50/30' : 'text-slate-700'}`}
+                >
+                  {opt}
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-6 text-center text-xs text-slate-400 font-bold uppercase tracking-widest">
+                Sen resultados
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -250,8 +301,8 @@ function Select({ label, value, options, onChange, search = false }: { label: st
 
 function GlobalInput({ label, value, onChange, icon, type = 'text' }: { label: string, value: string, onChange: (v: string) => void, icon: React.ReactNode, type?: string }) {
   return (
-    <div className="flex flex-col gap-2 group">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest flex items-center gap-2 pl-1 transition-colors group-focus-within:text-[#FBAB18]">
+    <div className="flex flex-col gap-1.5 group">
+      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest flex items-center gap-2 pl-1.5 transition-colors group-focus-within:text-[#FBAB18]">
         {icon}
         {label}
       </label>
@@ -259,7 +310,7 @@ function GlobalInput({ label, value, onChange, icon, type = 'text' }: { label: s
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="bg-white border border-slate-200 rounded-2xl p-4 text-sm focus:border-[#FBAB18] focus:shadow-[0_8px_30px_rgb(251,171,24,0.12)] outline-none transition-all hover:border-slate-300 text-slate-900 placeholder:text-slate-200 shadow-sm"
+        className="bg-white border border-slate-200 rounded-2xl p-4 text-sm font-semibold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all hover:border-slate-300 text-slate-900 placeholder:text-slate-300 shadow-sm"
         placeholder={`Introduza ${label.toLowerCase()}...`}
       />
     </div>
@@ -276,45 +327,61 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
     if (!result) return 'bg-slate-50 border-slate-200'
     switch (result.status) {
       case 'VERDE': return 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-lg shadow-emerald-500/10'
-      case 'AMARILLO': return 'bg-amber-50 border-amber-200 text-amber-700 shadow-lg shadow-amber-500/10'
-      case 'ROJO': return 'bg-rose-50 border-rose-200 text-rose-700 shadow-lg shadow-rose-500/10'
+      case 'AMARELO': return 'bg-amber-50 border-amber-200 text-amber-700 shadow-lg shadow-amber-500/10'
+      case 'VERMELLO': return 'bg-rose-50 border-rose-200 text-rose-700 shadow-lg shadow-rose-500/10'
       case 'ERROR': return 'bg-red-50 border-red-200 text-red-700 shadow-lg shadow-red-500/10'
       default: return 'bg-slate-50'
     }
   }
 
   return (
-    <div className="space-y-8 mt-12 bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 shadow-inner">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6">
+    <div className="space-y-8 mt-12 bg-slate-50/50 p-6 sm:p-8 rounded-[2rem] border border-slate-100 shadow-inner">
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
         <Ruler size={14} className="text-[#FBAB18]" />
-        Medidas de Hueco
+        Medidas de Oco
       </h3>
       
-      <div className="relative aspect-video bg-white rounded-3xl border border-slate-200 flex items-center justify-center p-6 overflow-hidden shadow-xl shadow-slate-200/50">
-        <svg viewBox="0 0 200 150" className="w-full h-full opacity-90">
+      <div className="relative aspect-[4/3] sm:aspect-video bg-white rounded-3xl border-2 border-slate-100 flex items-center justify-center p-4 sm:p-6 overflow-hidden shadow-2xl shadow-slate-200/40">
+        <svg viewBox="0 0 200 150" className="w-full h-full">
           <defs>
             <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style={{stopColor:'#FBAB18',stopOpacity:0.15}} />
-              <stop offset="100%" style={{stopColor:'#FBAB18',stopOpacity:0.05}} />
+              <stop offset="0%" style={{stopColor:'#FBAB18',stopOpacity:0.25}} />
+              <stop offset="100%" style={{stopColor:'#FBAB18',stopOpacity:0.1}} />
             </linearGradient>
-            <filter id="glow">
-               <feGaussianBlur stdDeviation="1.5" result="blur" />
-               <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            <filter id="shadow">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.2" />
             </filter>
           </defs>
-          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="url(#grad)" stroke="#FBAB18" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <line x1="40" y1="40" x2="170" y2="110" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4" />
-          <line x1="160" y1="40" x2="30" y2="110" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4" />
-          <text x="100" y="32" textAnchor="middle" className="text-[9px] fill-slate-500 uppercase font-black tracking-widest">Arriba</text>
-          <text x="100" y="125" textAnchor="middle" className="text-[9px] fill-slate-500 uppercase font-black tracking-widest">Abaixo</text>
-          <text x="25" y="75" textAnchor="middle" className="text-[9px] fill-slate-500 uppercase font-black tracking-widest [writing-mode:vertical-rl]">Esquerda</text>
-          <text x="175" y="75" textAnchor="middle" className="text-[9px] fill-slate-500 uppercase font-black tracking-widest [writing-mode:vertical-rl]">Dereita</text>
+          
+          {/* Sombra de fondo para el trazo principal */}
+          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="url(#grad)" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+          
+          {/* Trazo principal */}
+          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="none" stroke="#FBAB18" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+          
+          {/* Diagonales con más contraste y etiquetas */}
+          <line x1="40" y1="40" x2="170" y2="110" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6" />
+          <line x1="160" y1="40" x2="30" y2="110" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6" />
+          
+          <g filter="url(#shadow)" className="text-[10px] fill-slate-500 font-black">
+            <text x="65" y="60" textAnchor="middle">D1</text>
+            <text x="135" y="60" textAnchor="middle">D2</text>
+          </g>
+          
+          {/* Etiquetas con fondo para legibilidad máxima */}
+          <g filter="url(#shadow)">
+            <text x="100" y="28" textAnchor="middle" className="text-[11px] fill-slate-900 uppercase font-black tracking-widest bg-white">Arriba</text>
+            <text x="100" y="132" textAnchor="middle" className="text-[11px] fill-slate-900 uppercase font-black tracking-widest">Abaixo</text>
+            
+            <text x="12" y="78" textAnchor="middle" className="text-[10px] fill-slate-900 uppercase font-black tracking-widest [writing-mode:vertical-rl]">Esquerda</text>
+            <text x="188" y="78" textAnchor="middle" className="text-[10px] fill-slate-900 uppercase font-black tracking-widest [writing-mode:vertical-rl]">Dereita</text>
+          </g>
         </svg>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-        <MeasurementInput label="Frente Superior" value={measurements.fSup} onChange={v => handleNumInput('fSup', v)} />
-        <MeasurementInput label="Frente Inferior" value={measurements.fInf} onChange={v => handleNumInput('fInf', v)} />
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <MeasurementInput label="Fronte Superior" value={measurements.fSup} onChange={v => handleNumInput('fSup', v)} />
+        <MeasurementInput label="Fronte Inferior" value={measurements.fInf} onChange={v => handleNumInput('fInf', v)} />
         <MeasurementInput label="S. Esquerda" value={measurements.sIzq} onChange={v => handleNumInput('sIzq', v)} />
         <MeasurementInput label="S. Dereita" value={measurements.sDer} onChange={v => handleNumInput('sDer', v)} />
         <MeasurementInput label="Diagonal 1" value={measurements.diag1} onChange={v => handleNumInput('diag1', v)} />
@@ -344,8 +411,8 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
 
 function MeasurementInput({ label, value, onChange }: { label: string, value: number, onChange: (v: string) => void }) {
   return (
-    <div className="flex flex-col gap-2 group">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-tight pl-1 group-focus-within:text-[#FBAB18] transition-colors">
+    <div className="flex flex-col gap-1.5 group">
+      <label className="text-[10px] uppercase font-black text-slate-400 tracking-tight pl-1.5 group-focus-within:text-[#FBAB18] transition-colors">
         {label}
       </label>
       <input 
@@ -353,7 +420,7 @@ function MeasurementInput({ label, value, onChange }: { label: string, value: nu
         inputMode="decimal"
         value={value || ''}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-lg font-mono font-bold focus:border-[#FBAB18] focus:shadow-[0_8px_30px_rgb(251,171,24,0.12)] focus:scale-[1.02] outline-none transition-all placeholder:text-slate-100 text-slate-900 shadow-sm shadow-slate-200/50"
+        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-lg font-mono font-bold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all placeholder:text-slate-200 text-slate-900 shadow-sm shadow-slate-200/50"
         placeholder="0.0"
       />
     </div>
@@ -364,8 +431,8 @@ function StatusIcon({ status }: { status: string }) {
   const size = 32
   switch (status) {
     case 'VERDE': return <CheckCircle size={size} className="flex-shrink-0" />
-    case 'AMARILLO': return <AlertTriangle size={size} className="flex-shrink-0" />
-    case 'ROJO': return <AlertTriangle size={size} className="flex-shrink-0" />
+    case 'AMARELO': return <AlertTriangle size={size} className="flex-shrink-0" />
+    case 'VERMELLO': return <AlertTriangle size={size} className="flex-shrink-0" />
     case 'ERROR': return <XCircle size={size} className="flex-shrink-0" />
     default: return null
   }

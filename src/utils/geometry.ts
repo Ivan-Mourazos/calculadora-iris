@@ -28,7 +28,7 @@ export interface Measurements {
   diag2: number;
 }
 
-export type Status = 'VERDE' | 'AMARILLO' | 'ROJO' | 'ERROR';
+export type Status = 'VERDE' | 'AMARELO' | 'VERMELLO' | 'ERROR';
 
 export interface ValidationResult {
   status: Status;
@@ -39,7 +39,7 @@ export interface ValidationResult {
 
 export function validateMeasurements(m: Measurements): ValidationResult {
   // 1. Verificación de triángulos posibles
-  // Triángulo 1: fSup, sIzq, diag1 (o diag2 segn o esquema)
+  // Triángulo 1: fSup, sIzq, diag1 (o diag2 según o esquema)
   // Baseado no Excel: Triángulo 1 usa fSup, sIzq, diag1. Triángulo 2 usa fSup, sDer, diag2.
   const area1 = calculateHeronArea(m.fSup, m.sIzq, m.diag1);
   const area2 = calculateHeronArea(m.fSup, m.sDer, m.diag2);
@@ -68,15 +68,15 @@ export function validateMeasurements(m: Measurements): ValidationResult {
     };
   } else if (diff <= 15) {
     return {
-      status: 'AMARILLO',
-      message: `Hueco descuadrado (${diff.toFixed(1)} mm). Necesítanse guías compensadoras. Confirmas?`,
+      status: 'AMARELO',
+      message: `Oco descuadrado (${diff.toFixed(1)} mm). Necesítanse guías compensadoras. Confirmas?`,
       errorMm: diff,
       isPossible: true
     };
   } else {
     return {
-      status: 'ROJO',
-      message: `Error de medida excesivo (${diff.toFixed(1)} mm). Por favor, volve medir antes de enviar.`,
+      status: 'VERMELLO',
+      message: `Erro de medida excesivo (${diff.toFixed(1)} mm). Por favor, volve medir antes de enviar.`,
       errorMm: diff,
       isPossible: true
     };
