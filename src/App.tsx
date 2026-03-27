@@ -244,30 +244,36 @@ function Select({ label, value, options, onChange, search = false }: { label: st
   return (
     <div className="flex flex-col gap-1.5 flex-1 group relative">
       <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1.5 transition-colors group-focus-within:text-[#FBAB18]">{label}</label>
-      <div className="relative" onClick={() => {
-        setIsOpen(!isOpen)
-        if (!isOpen) setSearchTerm('')
-      }}>
-        <input 
-          type="text"
-          inputMode="search"
-          enterKeyHint="done"
-          readOnly={!isOpen && !search}
-          value={isOpen ? searchTerm : value}
-          onFocus={() => {
-            if (!isOpen) {
-              setIsOpen(true)
-              setSearchTerm('')
-            }
-          }}
-          onBlur={() => setTimeout(() => setIsOpen(false), 250)}
-          onChange={e => {
-            e.stopPropagation()
-            setSearchTerm(e.target.value)
-          }}
-          placeholder="Seleccione ou busque..."
-          className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all hover:border-slate-300 text-slate-900 shadow-sm cursor-pointer"
-        />
+        <div className="relative">
+          <input 
+            type="text"
+            inputMode="search"
+            enterKeyHint="done"
+            readOnly={!isOpen && !search}
+            value={isOpen ? searchTerm : value}
+            onFocus={() => {
+              if (!isOpen) {
+                setIsOpen(true)
+                setSearchTerm('')
+              }
+            }}
+            onMouseDown={(e) => {
+              // Se xa ten o foco, facemos o toggle (pechar se estaba aberto)
+              if (document.activeElement === e.currentTarget) {
+                setIsOpen(!isOpen)
+                e.preventDefault() // Evita interferencias co foco
+              }
+            }}
+            onBlur={() => {
+              // Retraso para permitir o click na lista antes de pechar
+              setTimeout(() => setIsOpen(false), 200)
+            }}
+            onChange={e => {
+              setSearchTerm(e.target.value)
+            }}
+            placeholder="Seleccione ou busque..."
+            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all appearance-none cursor-pointer hover:border-slate-300 text-slate-900 shadow-sm"
+          />
         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300 group-focus-within:text-[#FBAB18] transition-colors">
           <ChevronRight size={18} strokeWidth={3} className={isOpen ? '-rotate-90' : 'rotate-90'} />
         </div>
