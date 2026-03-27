@@ -272,10 +272,10 @@ function App() {
               </div>
 
               {/* Configuración de Modelo e Materiais (Colapsable) */}
-              <div className={`mt-6 border border-slate-200 rounded-3xl overflow-hidden transition-all duration-300 ${toldo.isConfigCollapsed ? 'bg-slate-50/50 py-1' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
+              <div className={`mt-6 border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isConfigCollapsed ? 'bg-slate-50/50 py-1 overflow-hidden' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1 overflow-visible'}`}>
                 <button 
                   onClick={() => updateToldo(toldo.id, { isConfigCollapsed: !toldo.isConfigCollapsed })}
-                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl"
+                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl relative z-10"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-xl ${toldo.isConfigCollapsed ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -296,7 +296,7 @@ function App() {
                 </button>
 
                 {!toldo.isConfigCollapsed && (
-                  <div className="p-6 pt-2 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="p-6 pt-2 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500 relative z-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
