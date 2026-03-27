@@ -481,44 +481,44 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
         )}
       </div>
       
-      {/* Diagrama SVG Premium Ampliado */}
-      <div className="relative aspect-[16/10] bg-slate-50/50 rounded-3xl border border-slate-100 flex items-center justify-center p-4">
-        <svg viewBox="0 0 200 150" className="w-full h-full drop-shadow-sm">
+      {/* Diagrama SVG Premium Maximizado */}
+      <div className="relative aspect-[16/9] bg-slate-50/50 rounded-3xl border border-slate-100 flex items-center justify-center p-2">
+        <svg viewBox="0 0 200 130" className="w-full h-full drop-shadow-sm">
           {/* Sombra proyectada */}
-          <path d="M 40,45 L 160,45 L 170,115 L 30,115 Z" fill="#e2e8f0" opacity="0.3" />
+          <path d="M 30,30 L 170,30 L 180,110 L 20,110 Z" fill="#e2e8f0" opacity="0.3" />
           
           {/* El Trapezoide (Oco) */}
-          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="#ffffff" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M 30,25 L 170,25 L 180,105 L 20,105 Z" fill="#ffffff" stroke="#3b82f6" strokeWidth="3" strokeLinejoin="round" />
           
-          {/* Diagonales con flechas discretas */}
-          <line x1="40" y1="40" x2="170" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
-          <line x1="160" y1="40" x2="30" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
+          {/* Diagonales */}
+          <line x1="30" y1="25" x2="180" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
+          <line x1="170" y1="25" x2="20" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
 
           {/* Etiquetas de Medida (TGM Style) */}
-          <g className="text-[7px] font-black fill-slate-400 uppercase tracking-tighter">
+          <g className="text-[8px] font-black fill-slate-400 uppercase tracking-tighter">
             {/* Frente Superior */}
-            <text x="100" y="32" textAnchor="middle" className="fill-blue-600">Fr. Sup</text>
+            <text x="100" y="15" textAnchor="middle" className="fill-blue-600">Fr. Sup</text>
             {/* Frente Inferior */}
-            <text x="100" y="125" textAnchor="middle" className="fill-blue-600">Fr. Inf</text>
+            <text x="100" y="122" textAnchor="middle" className="fill-blue-600">Fr. Inf</text>
             {/* Saída Esquerda */}
-            <text x="15" y="78" textAnchor="middle" transform="rotate(-78, 15, 78)" className="fill-slate-500">S. Izq</text>
+            <text x="10" y="68" textAnchor="middle" transform="rotate(-78, 10, 68)" className="fill-slate-500">S. Izq</text>
             {/* Saída Dereita */}
-            <text x="185" y="78" textAnchor="middle" transform="rotate(78, 185, 78)" className="fill-slate-500">S. Der</text>
+            <text x="190" y="68" textAnchor="middle" transform="rotate(78, 190, 68)" className="fill-slate-500">S. Der</text>
             {/* Diagonales */}
-            <text x="75" y="65" textAnchor="middle" className="fill-amber-500">D1</text>
-            <text x="125" y="65" textAnchor="middle" className="fill-amber-500">D2</text>
+            <text x="70" y="58" textAnchor="middle" className="fill-amber-500">D1</text>
+            <text x="130" y="58" textAnchor="middle" className="fill-amber-500">D2</text>
           </g>
 
-          {/* Puntos de anclaje */}
-          <circle cx="40" cy="40" r="2" fill="#3b82f6" />
-          <circle cx="160" cy="40" r="2" fill="#3b82f6" />
-          <circle cx="170" cy="110" r="2" fill="#3b82f6" />
-          <circle cx="30" cy="110" r="2" fill="#3b82f6" />
+          {/* Puntos de anclaje (Vértices) */}
+          <circle cx="30" cy="25" r="2.5" fill="#3b82f6" />
+          <circle cx="170" cy="25" r="2.5" fill="#3b82f6" />
+          <circle cx="180" cy="105" r="2.5" fill="#3b82f6" />
+          <circle cx="20" cy="105" r="2.5" fill="#3b82f6" />
         </svg>
 
         {/* Badge de Ayuda Visual */}
-        <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur shadow-sm border border-slate-100 px-3 py-1.5 rounded-xl text-[9px] font-bold text-slate-400 flex items-center gap-2">
-          <AlertTriangle size={10} className="text-amber-500" />
+        <div className="absolute bottom-2 right-2 bg-white/80 backdrop-blur shadow-sm border border-slate-100 px-2 py-1 rounded-lg text-[8px] font-bold text-slate-400 flex items-center gap-1.5">
+          <AlertTriangle size={8} className="text-amber-500" />
           <span>Medidas reais dende o exterior</span>
         </div>
       </div>
