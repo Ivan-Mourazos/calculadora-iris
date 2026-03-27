@@ -134,40 +134,52 @@ function App() {
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-10">
         
         {/* Sección de Datos de Cliente (Colapsable) */}
-        <section className={`bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 overflow-hidden transition-all duration-500 ${isClientDataCollapsed ? 'max-h-24' : 'max-h-[800px]'}`}>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
-                  <User size={18} />
+        <section className={`transition-all duration-300 ${isClientDataCollapsed ? 'bg-slate-100/50 py-2 px-4 rounded-2xl border border-slate-200' : 'bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 p-6'}`}>
+          {isClientDataCollapsed ? (
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 flex-1">
+                <div className="px-3 py-1.5 bg-blue-600 text-white rounded-lg flex items-center gap-2 whitespace-nowrap shadow-sm">
+                  <span className="text-[10px] font-black">{clientData.cliente || 'Sen nome'}</span>
                 </div>
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Datos do Cliente</h2>
+                {clientData.pedido && (
+                  <div className="px-3 py-1.5 bg-white text-slate-600 rounded-lg flex items-center gap-2 whitespace-nowrap border border-slate-200 shadow-sm">
+                    <span className="text-[9px] font-black opacity-40 uppercase">OF:</span>
+                    <span className="text-[10px] font-bold">{clientData.pedido}</span>
+                  </div>
+                )}
+                {clientData.localidade && (
+                  <div className="px-3 py-1.5 bg-white text-slate-600 rounded-lg flex items-center gap-2 whitespace-nowrap border border-slate-200 shadow-sm">
+                    <span className="text-[9px] font-black opacity-40 uppercase">Lug:</span>
+                    <span className="text-[10px] font-bold">{clientData.localidade}</span>
+                  </div>
+                )}
               </div>
-              {isClientDataComplete && (
-                <button 
-                  onClick={() => setIsClientDataCollapsed(!isClientDataCollapsed)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
-                >
-                  {isClientDataCollapsed ? 'EDITAR' : 'CONFIRMAR'}
-                </button>
-              )}
+              <button 
+                onClick={() => setIsClientDataCollapsed(false)}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+              >
+                <span className="text-[9px] font-black uppercase tracking-widest">Editar</span>
+              </button>
             </div>
-
-            {isClientDataCollapsed ? (
-              <div className="flex gap-2 flex-wrap animate-in fade-in zoom-in-95">
-                <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2 max-w-[200px] truncate">
-                  <span className="text-xs font-bold text-blue-800">{clientData.cliente}</span>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+                    <User size={18} />
+                  </div>
+                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Datos do Cliente</h2>
                 </div>
-                <div className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Pedido/OF:</span>
-                  <span className="text-xs font-bold text-slate-700">{clientData.pedido}</span>
-                </div>
-                <div className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Localidade:</span>
-                  <span className="text-xs font-bold text-slate-700">{clientData.localidade}</span>
-                </div>
+                {isClientDataComplete && (
+                  <button 
+                    onClick={() => setIsClientDataCollapsed(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                  >
+                    CONFIRMAR
+                  </button>
+                )}
               </div>
-            ) : (
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2">
                 <div className="md:col-span-2">
                   <GlobalInput 
@@ -203,8 +215,8 @@ function App() {
                   icon={<ClipboardList size={14} />} 
                 />
               </div>
-            )}
-          </div>
+            </>
+          )}
         </section>
 
         {/* Lista de Toldos */}
