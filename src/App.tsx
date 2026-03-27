@@ -397,7 +397,7 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
               {result.isPossible && (
                 <div className="flex items-center gap-4 mt-2 border-t border-current/10 pt-2">
                   <p className="text-xs font-bold uppercase tracking-widest opacity-80">
-                    Desfase: <span className="font-mono text-base ml-2">{result.errorMm.toFixed(1)} mm</span>
+                    Desfase: <span className="font-mono text-base ml-2">{result.errorCm.toFixed(1)} cm</span>
                   </p>
                 </div>
               )}

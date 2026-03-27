@@ -33,52 +33,53 @@ export type Status = 'VERDE' | 'AMARELO' | 'VERMELLO' | 'ERROR';
 export interface ValidationResult {
   status: Status;
   message: string;
-  errorMm: number;
+  errorCm: number;
   isPossible: boolean;
 }
 
-export function validateMeasurements(m: Measurements): ValidationResult {
-  // 1. Verificación de triángulos posibles
-  // Triángulo 1: fSup, sIzq, diag1 (o diag2 según o esquema)
-  // Baseado no Excel: Triángulo 1 usa fSup, sIzq, diag1. Triángulo 2 usa fSup, sDer, diag2.
-  const area1 = calculateHeronArea(m.fSup, m.sIzq, m.diag1);
-  const area2 = calculateHeronArea(m.fSup, m.sDer, m.diag2);
+export function validateMeasurements(m: Measurements): ValidationResult | null {
+  const { fSup, fInf, sIzq, sDer, diag1, diag2 } = m
+  
+  if (!fSup || !fInf || !sIzq || !sDer || !diag1 || !diag2) return null
 
-  if (area1 === -1 || area2 === -1) {
+  // Cálculo da diferenza entre diagonais (fórmula simplificada para este caso coherente co Excel en cm)
+  const diffDiags = Math.abs(diag1 - diag2)
+
+  // Limiares de erro en cm (Ajustados según lógica de negocio para toldos)
+  const errorCm = diffDiags
+
+  if (errorCm < 1) { // Menos de 1cm: Perfecto
     return {
-      status: 'ERROR',
-      message: 'Medidas imposibles. Revisa os datos.',
-      errorMm: 0,
-      isPossible: false
-    };
+      isPossible: true,
+      status: 'VERDE',
+      message: 'Medida Perfecta. O toldo encaixará sen problemas.',
+      errorCm
+    }
   }
 
-  // 2. Cálculo do desfase (diferenza de alturas)
-  const h1 = (2 * area1) / m.fSup;
-  const h2 = (2 * area2) / m.fSup;
-  const diff = Math.abs(h1 - h2);
-
-  // 3. Semáforo
-  if (diff < 5) {
+  if (errorCm < 3) { // Entre 1cm y 3cm: Amarillo
     return {
-      status: 'VERDE',
-      message: 'Medida Perfecta',
-      errorMm: diff,
-      isPossible: true
-    };
-  } else if (diff <= 15) {
-    return {
+      isPossible: true,
       status: 'AMARELO',
-      message: `Oco descuadrado (${diff.toFixed(1)} mm). Necesítanse guías compensadoras. Confirmas?`,
-      errorMm: diff,
-      isPossible: true
-    };
-  } else {
+      message: `Desfase detectado (${errorCm.toFixed(1)} cm). O toldo pode quedar algo forzado.`,
+      errorCm
+    }
+  }
+
+  if (errorCm < 6) { // Entre 3cm y 6cm: Rojo
     return {
+      isPossible: true,
       status: 'VERMELLO',
-      message: `Erro de medida excesivo (${diff.toFixed(1)} mm). Por favor, volve medir antes de enviar.`,
-      errorMm: diff,
-      isPossible: true
-    };
+      message: `Desfase crítico (${errorCm.toFixed(1)} cm). Recomendable rectificar o oco.`,
+      errorCm
+    }
+  }
+
+  // Más de 6cm: Error
+  return {
+    isPossible: false,
+    status: 'ERROR',
+    message: `Medida Imposible (${errorCm.toFixed(1)} cm). Erro grave na toma de datos.`,
+    errorCm
   }
 }
