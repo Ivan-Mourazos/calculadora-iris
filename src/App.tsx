@@ -143,14 +143,8 @@ function App() {
                 </div>
                 {clientData.pedido && (
                   <div className="px-3 py-1.5 bg-white text-slate-600 rounded-lg flex items-center gap-2 whitespace-nowrap border border-slate-200 shadow-sm">
-                    <span className="text-[9px] font-black opacity-40 uppercase">OF:</span>
+                    <span className="text-[9px] font-black opacity-40 uppercase">Ped:</span>
                     <span className="text-[10px] font-bold">{clientData.pedido}</span>
-                  </div>
-                )}
-                {clientData.localidade && (
-                  <div className="px-3 py-1.5 bg-white text-slate-600 rounded-lg flex items-center gap-2 whitespace-nowrap border border-slate-200 shadow-sm">
-                    <span className="text-[9px] font-black opacity-40 uppercase">Lug:</span>
-                    <span className="text-[10px] font-bold">{clientData.localidade}</span>
                   </div>
                 )}
               </div>
@@ -196,7 +190,7 @@ function App() {
                   icon={<Box size={14} />} 
                 />
                 <GlobalInput 
-                  label="Pedido / Oportunidade" 
+                  label="Número de Pedido" 
                   value={clientData.pedido} 
                   onChange={v => setClientData({...clientData, pedido: v})} 
                   icon={<ClipboardList size={14} />} 
