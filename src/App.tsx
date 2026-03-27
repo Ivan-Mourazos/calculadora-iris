@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Ruler, AlertTriangle, CheckCircle, XCircle, ChevronRight, Plus, Trash2, ClipboardList, User, Calendar, Settings, Box, Palette } from 'lucide-react'
+import { Ruler, AlertTriangle, CheckCircle, XCircle, ChevronRight, Plus, Trash2, Box, Palette, User, ClipboardList } from 'lucide-react'
 import { validateMeasurements, type Measurements, type ValidationResult } from './utils/geometry'
 import catalog from './data/catalog.json'
 
-interface ToldoData {
+interface Toldo {
   id: string;
   of: string;
   modelo: string;
@@ -19,22 +19,14 @@ interface ToldoData {
   result: ValidationResult | null;
 }
 
-interface OrderInfo {
-  pedido: string;
-  cliente: string;
-  tecnico: string;
-  data: string;
-}
-
 function App() {
-  const [order, setOrder] = useState<OrderInfo>({
+  const [isClientDataCollapsed, setIsClientDataCollapsed] = useState(false)
+  const [clientData, setClientData] = useState({
     pedido: '',
-    cliente: '',
-    tecnico: '',
-    data: new Date().toISOString().split('T')[0]
+    responsable: ''
   })
-
-  const [toldos, setToldos] = useState<ToldoData[]>([
+  
+  const [toldos, setToldos] = useState<Toldo[]>([
     {
       id: crypto.randomUUID(),
       of: '',
@@ -71,6 +63,10 @@ function App() {
         result: null
       }
     ])
+    // Ao engadir un toldo, se os datos do cliente están listos, colapsamos para dar espazo
+    if (clientData.pedido && clientData.responsable) {
+      setIsClientDataCollapsed(true);
+    }
   }
 
   const removeToldo = (id: string) => {
@@ -79,13 +75,13 @@ function App() {
     }
   }
 
-  const updateToldo = (id: string, updates: Partial<ToldoData>) => {
+  const updateToldo = (id: string, updates: Partial<Toldo>) => {
     setToldos(prev => prev.map(t => {
       if (t.id === id) {
         const updated = { ...t, ...updates }
-        if (updates.measurements) {
-          const m = updates.measurements
-          if (m.fSup > 0 && m.fInf > 0 && m.sIzq > 0 && m.sDer > 0 && m.diag1 > 0 && m.diag2 > 0) {
+        if (updates.measurements || updates.modelo) {
+          const m = updated.measurements
+          if (m.fSup > 0 && m.sIzq > 0 && m.sDer > 0 && m.diag1 > 0 && m.diag2 > 0) {
             updated.result = validateMeasurements(m)
           } else {
             updated.result = null
@@ -97,112 +93,145 @@ function App() {
     }))
   }
 
+  const isClientDataComplete = clientData.pedido && clientData.responsable;
   const isOrderBlocked = toldos.some(t => t.result?.status === 'VERMELLO' || t.result?.status === 'ERROR')
-  // Orixinalmente os datos do cliente deberían mostrarse sempre ata que se completan
-  const isClientDataComplete = clientData.pedido || clientData.responsable;
-  const isOrderEmpty = toldos.some(t => !t.result) || !isClientDataComplete;
+  const isOrderEmpty = toldos.some(t => !t.result)
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20 selection:bg-blue-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-32 selection:bg-blue-100">
       {/* Header Premium */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <img 
-                src="/faviconTGM.png" 
-                alt="Logo TGM" 
-                className="relative h-12 w-12 object-contain bg-white rounded-xl p-1 shadow-sm border border-slate-100"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://www.toldosgomez.com/favicon.ico'
-                }}
-              />
-            </div>
+            <img 
+              src="/faviconTGM.png" 
+              alt="Logo TGM" 
+              className="h-10 w-10 object-contain"
+              onError={(e) => { e.currentTarget.src = 'https://www.toldosgomez.com/favicon.ico' }}
+            />
             <div>
-              <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 tracking-tight leading-none">
+              <h1 className="text-xl font-black tracking-tight leading-none text-slate-900">
                 CALCULADORA IRIS
               </h1>
+              <p className="text-[10px] font-bold text-blue-600 tracking-[0.2em] uppercase mt-1">
                 Toldos Gómez
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-             <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Activo</span>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Activa</span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto p-4 pt-8">
-        {/* Datos do Pedido */}
-        <section className="bg-white rounded-3xl border border-slate-200 p-8 mb-12 grid grid-cols-1 md:grid-cols-2 gap-6 shadow-xl shadow-slate-200/50">
-          <GlobalInput label="Cliente" value={order.cliente} onChange={v => setOrder(prev => ({ ...prev, cliente: v }))} icon={<User size={14} />} />
-          <GlobalInput label="Pedido / Oportunidade" value={order.pedido} onChange={v => setOrder(prev => ({ ...prev, pedido: v }))} icon={<ClipboardList size={14} />} />
-          <GlobalInput label="Técnico" value={order.tecnico} onChange={v => setOrder(prev => ({ ...prev, tecnico: v }))} icon={<User size={14} />} />
-          <GlobalInput label="Data" type="date" value={order.data} onChange={v => setOrder(prev => ({ ...prev, data: v }))} icon={<Calendar size={14} />} />
+      <main className="max-w-4xl mx-auto px-4 py-8 space-y-10">
+        
+        {/* Sección de Datos de Cliente (Colapsable) */}
+        <section className={`bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 overflow-hidden transition-all duration-500 ${isClientDataCollapsed ? 'max-h-24' : 'max-h-[500px]'}`}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
+                  <User size={18} />
+                </div>
+                <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Datos do Cliente</h2>
+              </div>
+              {isClientDataComplete && (
+                <button 
+                  onClick={() => setIsClientDataCollapsed(!isClientDataCollapsed)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                >
+                  {isClientDataCollapsed ? 'EDITAR' : 'CONFIRMAR'}
+                </button>
+              )}
+            </div>
+
+            {isClientDataCollapsed ? (
+              <div className="flex gap-3 flex-wrap animate-in fade-in zoom-in-95">
+                <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2">
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Pedido:</span>
+                  <span className="text-xs font-bold text-blue-800">{clientData.pedido}</span>
+                </div>
+                <div className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Responsable:</span>
+                  <span className="text-xs font-bold text-slate-700">{clientData.responsable}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2">
+                <GlobalInput 
+                  label="Pedido / Oportunidade" 
+                  value={clientData.pedido} 
+                  onChange={v => setClientData({...clientData, pedido: v})} 
+                  icon={<ClipboardList size={14} />} 
+                />
+                <GlobalInput 
+                  label="Responsable da Medición" 
+                  value={clientData.responsable} 
+                  onChange={v => setClientData({...clientData, responsable: v})} 
+                  icon={<User size={14} />} 
+                />
+              </div>
+            )}
+          </div>
         </section>
 
-        <div className="space-y-16">
+        {/* Lista de Toldos */}
+        <div className="space-y-12">
           {toldos.map((toldo, index) => (
-            <div key={toldo.id} className="relative group bg-white rounded-[2rem] p-8 border border-slate-200 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-[#FBAB18]/5 transition-all duration-500">
-              <div className="absolute -left-1 top-12 bottom-12 w-1.5 bg-[#FBAB18]/20 rounded-full group-focus-within:bg-[#FBAB18] transition-all" />
-              
-              <div className="flex justify-between items-center mb-12">
-                <h2 className="text-2xl font-black flex items-center gap-4 text-slate-900">
-                  <span className="bg-[#FBAB18] text-white w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-xl shadow-amber-900/10 -rotate-3 group-hover:rotate-0 transition-transform font-black">
+            <div key={toldo.id} className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-xl shadow-slate-200/40 relative">
+              <div className="flex justify-between items-center mb-10">
+                <div className="flex items-center gap-4">
+                  <span className="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black">
                     {index + 1}
                   </span>
-                  Toldo {index + 1}
-                </h2>
-                <div className="flex items-center gap-4">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex items-center gap-2 shadow-inner">
-                    <span className="text-[10px] font-black text-slate-400 uppercase">OF</span>
+                  <h3 className="text-xl font-black text-slate-900">Toldo {index + 1}</h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 flex items-center gap-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">OF</span>
                     <input 
-                      placeholder="00000"
                       value={toldo.of}
                       onChange={e => updateToldo(toldo.id, { of: e.target.value })}
-                      className="bg-transparent text-sm outline-none w-20 text-right font-mono font-bold text-slate-900"
+                      placeholder="00000"
+                      className="bg-transparent text-sm font-bold text-slate-900 outline-none w-16 text-right"
                     />
                   </div>
                   {toldos.length > 1 && (
-                    <button onClick={() => removeToldo(toldo.id)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 p-2.5 rounded-xl transition-all">
+                    <button onClick={() => removeToldo(toldo.id)} className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
                       <Trash2 size={20} />
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Configuración Técnica */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-14">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-black text-[#FBAB18] uppercase tracking-[0.2em] flex items-center gap-2 mb-6 border-b border-amber-100 pb-2">
-                    <Box size={14} />
-                    Modelo e Configuración
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
+                  <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2 mb-2">
+                    <Box size={14} /> Configuración Técnica
+                  </h4>
+                  <div className="space-y-4">
                     <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
                     <div className="grid grid-cols-2 gap-4">
                       <Select label="Cofre" value={toldo.cofre} options={catalog.cofre} onChange={v => updateToldo(toldo.id, { cofre: v })} />
-                      <Select label="Cristal" value={toldo.cristal} options={catalog.cristal} onChange={v => updateToldo(toldo.id, { cristal: v })} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
                       <Select label="Mecanismo" value={toldo.mecanismo} options={catalog.mecanismo} onChange={v => updateToldo(toldo.id, { mecanismo: v })} />
-                      <Select label="Guía Comp." value={toldo.guia} options={catalog.guiaCompensadora} onChange={v => updateToldo(toldo.id, { guia: v })} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <Select label="SWBS" value={toldo.swbs} options={catalog.swbs} onChange={v => updateToldo(toldo.id, { swbs: v })} />
+                      <Select label="Guía Comp." value={toldo.guia} options={catalog.guiaCompensadora} onChange={v => updateToldo(toldo.id, { guia: v })} />
                       <Select label="Entre Paredes" value={toldo.entreParedes} options={catalog.entreParedes} onChange={v => updateToldo(toldo.id, { entreParedes: v })} />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-black text-[#FBAB18] uppercase tracking-[0.2em] flex items-center gap-2 mb-6 border-b border-amber-100 pb-2">
-                    <Palette size={14} />
-                    Materiais e Acabados
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
+                  <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2 mb-2">
+                    <Palette size={14} /> Materiais e Acabados
+                  </h4>
+                  <div className="space-y-4">
                     <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
                     <Select label="Lacado / RAL" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
                   </div>
@@ -218,23 +247,22 @@ function App() {
           ))}
         </div>
 
-        <button onClick={addToldo} className="w-full mt-12 py-6 border-2 border-dashed border-slate-300 rounded-[2rem] text-slate-400 hover:border-[#FBAB18] hover:text-[#FBAB18] hover:bg-amber-50/50 flex items-center justify-center gap-3 transition-all group font-black uppercase text-sm tracking-widest shadow-lg shadow-slate-200/20">
-          <Plus size={24} className="group-hover:rotate-90 transition-transform duration-300" />
-          Engadir outro toldo
+        <button onClick={addToldo} className="w-full py-6 border-2 border-dashed border-slate-300 rounded-[2.5rem] text-slate-400 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-3 font-black uppercase text-xs tracking-widest">
+          <Plus size={20} /> Engadir outro toldo
         </button>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 z-50">
-        <div className="max-w-2xl mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 z-[100]">
+        <div className="max-w-4xl mx-auto">
           <button 
-            disabled={isOrderBlocked || isOrderEmpty}
-            className={`w-full py-6 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-4 transition-all shadow-xl tracking-tight
-              ${(isOrderBlocked || isOrderEmpty) 
+            disabled={isOrderBlocked || isOrderEmpty || !isClientDataComplete}
+            className={`w-full py-5 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-xl
+              ${(isOrderBlocked || isOrderEmpty || !isClientDataComplete) 
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50' 
-                : 'bg-[#FBAB18] text-white shadow-[#FBAB18]/30 active:scale-[0.98] hover:scale-[1.01] hover:brightness-105'}`}
+                : 'bg-blue-600 text-white shadow-blue-500/20 active:scale-95'}`}
           >
-            GARDAR PEDIDO COMPLETO
-            <ChevronRight size={24} strokeWidth={3} />
+            {isClientDataComplete ? 'GARDAR PEDIDO COMPLETO' : 'COMPLETA DATOS DO CLIENTE'}
+            <ChevronRight size={20} strokeWidth={3} />
           </button>
         </div>
       </div>
@@ -251,61 +279,42 @@ function Select({ label, value, options, onChange, search = false }: { label: st
   )
 
   return (
-    <div className="flex flex-col gap-1.5 flex-1 group relative">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1.5 transition-colors group-focus-within:text-[#FBAB18]">{label}</label>
-        <div className="relative">
-          <input 
-            type="text"
-            inputMode="search"
-            enterKeyHint="done"
-            readOnly={!isOpen && !search}
-            value={isOpen ? searchTerm : value}
-            onFocus={() => {
-              if (!isOpen) {
-                setIsOpen(true)
-                setSearchTerm('')
-              }
-            }}
-            onMouseDown={(e) => {
-              // Se xa ten o foco, facemos o toggle (pechar se estaba aberto)
-              if (document.activeElement === e.currentTarget) {
-                setIsOpen(!isOpen)
-                e.preventDefault() // Evita interferencias co foco
-              }
-            }}
-            onBlur={() => {
-              // Retraso para permitir o click na lista antes de pechar
-              setTimeout(() => setIsOpen(false), 200)
-            }}
-            onChange={e => {
-              setSearchTerm(e.target.value)
-            }}
-            placeholder="Seleccione ou busque..."
-            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-sm font-semibold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all appearance-none cursor-pointer hover:border-slate-300 text-slate-900 shadow-sm"
-          />
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300 group-focus-within:text-[#FBAB18] transition-colors">
-          <ChevronRight size={18} strokeWidth={3} className={isOpen ? '-rotate-90' : 'rotate-90'} />
+    <div className="flex flex-col gap-1.5 flex-1 relative">
+      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">{label}</label>
+      <div className="relative">
+        <input 
+          readOnly={!search}
+          value={isOpen && search ? searchTerm : value}
+          onFocus={() => { setIsOpen(true); if(search) setSearchTerm(''); }}
+          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          onChange={e => search && setSearchTerm(e.target.value)}
+          onMouseDown={(e) => {
+            if (document.activeElement === e.currentTarget && !search) {
+              setIsOpen(!isOpen);
+              e.preventDefault();
+            }
+          }}
+          placeholder="Seleccionar..."
+          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all cursor-pointer"
+        />
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+          <ChevronRight size={16} className={isOpen ? '-rotate-90' : 'rotate-90'} transition-transform="true" />
         </div>
         
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[60] max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[150] max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-200">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => (
                 <button
                   key={opt}
-                  onClick={() => {
-                    onChange(opt)
-                    setIsOpen(false)
-                  }}
-                  className={`w-full text-left px-4 py-3 text-sm hover:bg-amber-50 transition-colors border-b border-slate-50 last:border-0 ${value === opt ? 'text-[#FBAB18] font-black bg-amber-50/30' : 'text-slate-700'}`}
+                  onClick={() => { onChange(opt); setIsOpen(false); }}
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0 ${value === opt ? 'text-blue-600 font-black bg-blue-50/50' : 'text-slate-700'}`}
                 >
                   {opt}
                 </button>
               ))
             ) : (
-              <div className="px-4 py-6 text-center text-xs text-slate-400 font-bold uppercase tracking-widest">
-                Sen resultados
-              </div>
+              <div className="px-4 py-4 text-center text-xs text-slate-400 font-bold uppercase tracking-widest">Sen resultados</div>
             )}
           </div>
         )}
@@ -316,16 +325,15 @@ function Select({ label, value, options, onChange, search = false }: { label: st
 
 function GlobalInput({ label, value, onChange, icon, type = 'text' }: { label: string, value: string, onChange: (v: string) => void, icon: React.ReactNode, type?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 group">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest flex items-center gap-2 pl-1.5 transition-colors group-focus-within:text-[#FBAB18]">
-        {icon}
-        {label}
+    <div className="flex flex-col gap-1.5 flex-1">
+      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest flex items-center gap-2 pl-1">
+        {icon} {label}
       </label>
       <input 
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="bg-white border border-slate-200 rounded-2xl p-4 text-sm font-semibold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all hover:border-slate-300 text-slate-900 placeholder:text-slate-300 shadow-sm"
+        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
         placeholder={`Introduza ${label.toLowerCase()}...`}
       />
     </div>
@@ -338,97 +346,60 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
     onUpdate({ ...measurements, [key]: num })
   }
 
-  const getStatusColor = () => {
+  const getStatusClasses = () => {
     if (!result) return 'bg-slate-50 border-slate-200'
     switch (result.status) {
-      case 'VERDE': return 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-lg shadow-emerald-500/10'
-      case 'AMARELO': return 'bg-amber-50 border-amber-200 text-amber-700 shadow-lg shadow-amber-500/10'
-      case 'VERMELLO': return 'bg-rose-50 border-rose-200 text-rose-700 shadow-lg shadow-rose-500/10'
-      case 'ERROR': return 'bg-red-50 border-red-200 text-red-700 shadow-lg shadow-red-500/10'
+      case 'VERDE': return 'bg-emerald-50 border-emerald-200 text-emerald-700'
+      case 'AMARELO': return 'bg-amber-50 border-amber-200 text-amber-700'
+      case 'VERMELLO': return 'bg-rose-50 border-rose-200 text-rose-700'
+      case 'ERROR': return 'bg-red-50 border-red-200 text-red-700'
       default: return 'bg-slate-50'
     }
   }
 
   return (
-    <div className="space-y-8 mt-12 bg-slate-50/50 p-6 sm:p-8 rounded-[2rem] border border-slate-100 shadow-inner">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-        <Ruler size={14} className="text-[#FBAB18]" />
-        Medidas de Oco
-      </h3>
+    <div className="space-y-8 mt-12 bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100">
+      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+        <Ruler size={14} className="text-blue-600" /> Medidas de Oco (cm)
+      </h4>
       
-      <div className="relative aspect-[4/3] sm:aspect-video bg-white rounded-3xl border-2 border-slate-100 flex items-center justify-center p-4 sm:p-6 overflow-hidden shadow-2xl shadow-slate-200/40">
+      <div className="relative aspect-video bg-white rounded-3xl border border-slate-200 flex items-center justify-center p-6 shadow-inner">
         <svg viewBox="0 0 200 150" className="w-full h-full">
-          <defs>
-            <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style={{stopColor:'#FBAB18',stopOpacity:0.25}} />
-              <stop offset="100%" style={{stopColor:'#FBAB18',stopOpacity:0.1}} />
-            </linearGradient>
-            <filter id="shadow">
-              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.2" />
-            </filter>
-          </defs>
-          
-          {/* Sombra de fondo para el trazo principal */}
-          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="url(#grad)" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-          
-          {/* Trazo principal */}
-          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="none" stroke="#FBAB18" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          
-          {/* Diagonales con más contraste y etiquetas */}
-          <line x1="40" y1="40" x2="170" y2="110" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6" />
-          <line x1="160" y1="40" x2="30" y2="110" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6" />
-          
-          <g filter="url(#shadow)" className="text-[10px] fill-slate-500 font-black">
+          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="#ebf3ff" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" />
+          <line x1="40" y1="40" x2="170" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4" />
+          <line x1="160" y1="40" x2="30" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4" />
+          <g className="text-[10px] fill-slate-400 font-bold">
             <text x="65" y="60" textAnchor="middle">D1</text>
             <text x="135" y="60" textAnchor="middle">D2</text>
-          </g>
-          
-          {/* Etiquetas con fondo para legibilidad máxima */}
-          <g filter="url(#shadow)">
-            <text x="100" y="28" textAnchor="middle" className="text-[11px] fill-slate-900 uppercase font-black tracking-widest bg-white">Arriba</text>
-            <text x="100" y="132" textAnchor="middle" className="text-[11px] fill-slate-900 uppercase font-black tracking-widest">Abaixo</text>
-            
-            <text x="12" y="78" textAnchor="middle" className="text-[10px] fill-slate-900 uppercase font-black tracking-widest [writing-mode:vertical-rl]">Esquerda</text>
-            <text x="188" y="78" textAnchor="middle" className="text-[10px] fill-slate-900 uppercase font-black tracking-widest [writing-mode:vertical-rl]">Dereita</text>
           </g>
         </svg>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
         <MeasurementInput label="Fronte Superior" value={measurements.fSup} onChange={v => handleNumInput('fSup', v)} />
         <MeasurementInput label="Fronte Inferior" value={measurements.fInf} onChange={v => handleNumInput('fInf', v)} />
         <MeasurementInput label="S. Esquerda" value={measurements.sIzq} onChange={v => handleNumInput('sIzq', v)} />
         <MeasurementInput label="S. Dereita" value={measurements.sDer} onChange={v => handleNumInput('sDer', v)} />
-        <MeasurementInput label="Diagonal 1" value={measurements.diag1} onChange={v => handleNumInput('diag1', v)} />
-        <MeasurementInput label="Diagonal 2" value={measurements.diag2} onChange={v => handleNumInput('diag2', v)} />
+        <MeasurementInput label="Diagonal 1 (D1)" value={measurements.diag1} onChange={v => handleNumInput('diag1', v)} />
+        <MeasurementInput label="Diagonal 2 (D2)" value={measurements.diag2} onChange={v => handleNumInput('diag2', v)} />
       </div>
 
       {result && (
-        <div className={`p-6 rounded-3xl border-2 transition-all duration-500 shadow-2xl ${getStatusColor()}`}>
+        <div className={`p-6 rounded-3xl border-2 transition-all shadow-lg ${getStatusClasses()}`}>
           <div className="flex items-start gap-4">
-            <StatusIcon status={result.status} />
+            {result.status === 'VERDE' ? <CheckCircle size={24} /> : <AlertTriangle size={24} />}
             <div className="flex-1">
-              <p className="font-black text-lg mb-1 leading-tight">{result.message}</p>
-              {result.isPossible && (
-                <div className="mt-2 border-t border-current/10 pt-2 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-80">Desfase Total:</p>
-                    <span className="font-mono text-base font-black">{result.errorCm.toFixed(1)} cm</span>
+              <p className="font-black text-base">{result.message}</p>
+              {result.sideOffsets && (
+                <div className="mt-3 flex gap-4 pt-3 border-t border-current/10">
+                  <div className="flex-1 text-center">
+                    <p className="text-[9px] uppercase font-black opacity-60">Esq.</p>
+                    <p className="font-mono text-xs font-bold">{result.sideOffsets.izq.toFixed(1)} cm</p>
                   </div>
-                  
-                  {result.sideOffsets && (
-                    <div className="flex gap-4 p-2 bg-black/5 rounded-xl border border-current/5">
-                      <div className="flex-1 flex flex-col items-center">
-                        <span className="text-[10px] uppercase font-bold opacity-60">Esquerda</span>
-                        <span className="font-mono text-sm font-bold">{result.sideOffsets.izq.toFixed(1)} cm</span>
-                      </div>
-                      <div className="w-px bg-current/10" />
-                      <div className="flex-1 flex flex-col items-center">
-                        <span className="text-[10px] uppercase font-bold opacity-60">Dereita</span>
-                        <span className="font-mono text-sm font-bold">{result.sideOffsets.der.toFixed(1)} cm</span>
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex-1 text-center">
+                    <p className="text-[9px] uppercase font-black opacity-60">Der.</p>
+                    <p className="font-mono text-xs font-bold">{result.sideOffsets.der.toFixed(1)} cm</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -441,31 +412,18 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
 
 function MeasurementInput({ label, value, onChange }: { label: string, value: number, onChange: (v: string) => void }) {
   return (
-    <div className="flex flex-col gap-1.5 group">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-tight pl-1.5 group-focus-within:text-[#FBAB18] transition-colors">
-        {label}
-      </label>
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[10px] uppercase font-black text-slate-400 tracking-tight pl-1">{label}</label>
       <input 
         type="number" 
         inputMode="decimal"
         value={value || ''}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-lg font-mono font-bold focus:border-[#FBAB18] focus:ring-4 focus:ring-[#FBAB18]/5 outline-none transition-all placeholder:text-slate-200 text-slate-900 shadow-sm shadow-slate-200/50"
+        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-base font-mono font-bold focus:border-blue-500 outline-none transition-all placeholder:text-slate-200"
         placeholder="0.0"
       />
     </div>
   )
 }
 
-function StatusIcon({ status }: { status: string }) {
-  const size = 32
-  switch (status) {
-    case 'VERDE': return <CheckCircle size={size} className="flex-shrink-0" />
-    case 'AMARELO': return <AlertTriangle size={size} className="flex-shrink-0" />
-    case 'VERMELLO': return <AlertTriangle size={size} className="flex-shrink-0" />
-    case 'ERROR': return <XCircle size={size} className="flex-shrink-0" />
-    default: return null
-  }
-}
-
-export default App
+export default App;
