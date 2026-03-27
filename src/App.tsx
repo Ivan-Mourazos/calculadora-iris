@@ -401,10 +401,25 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
             <div className="flex-1">
               <p className="font-black text-lg mb-1 leading-tight">{result.message}</p>
               {result.isPossible && (
-                <div className="flex items-center gap-4 mt-2 border-t border-current/10 pt-2">
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-80">
-                    Desfase: <span className="font-mono text-base ml-2">{result.errorCm.toFixed(1)} cm</span>
-                  </p>
+                <div className="mt-2 border-t border-current/10 pt-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-80">Desfase Total:</p>
+                    <span className="font-mono text-base font-black">{result.errorCm.toFixed(1)} cm</span>
+                  </div>
+                  
+                  {result.sideOffsets && (
+                    <div className="flex gap-4 p-2 bg-black/5 rounded-xl border border-current/5">
+                      <div className="flex-1 flex flex-col items-center">
+                        <span className="text-[10px] uppercase font-bold opacity-60">Esquerda</span>
+                        <span className="font-mono text-sm font-bold">{result.sideOffsets.izq.toFixed(1)} cm</span>
+                      </div>
+                      <div className="w-px bg-current/10" />
+                      <div className="flex-1 flex flex-col items-center">
+                        <span className="text-[10px] uppercase font-bold opacity-60">Dereita</span>
+                        <span className="font-mono text-sm font-bold">{result.sideOffsets.der.toFixed(1)} cm</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
