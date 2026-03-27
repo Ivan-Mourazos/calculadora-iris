@@ -494,19 +494,30 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
           <line x1="30" y1="25" x2="180" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
           <line x1="170" y1="25" x2="20" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
 
-          {/* Etiquetas de Medida (TGM Style) */}
-          <g className="text-[8px] font-black fill-slate-400 uppercase tracking-tighter">
+          {/* Etiquetas de Medida e Valores Dinámicos */}
+          <g className="text-[7.5px] font-black uppercase tracking-tighter">
             {/* Frente Superior */}
             <text x="100" y="15" textAnchor="middle" className="fill-blue-600">Fr. Sup</text>
+            {measurements.fSup > 0 && <text x="100" y="22" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.fSup}cm</text>}
+            
             {/* Frente Inferior */}
             <text x="100" y="122" textAnchor="middle" className="fill-blue-600">Fr. Inf</text>
+            {measurements.fInf > 0 && <text x="100" y="115" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.fInf}cm</text>}
+            
             {/* Saída Esquerda */}
             <text x="10" y="68" textAnchor="middle" transform="rotate(-78, 10, 68)" className="fill-slate-500">S. Izq</text>
+            {measurements.sIzq > 0 && <text x="22" y="68" textAnchor="middle" transform="rotate(-78, 22, 68)" className="fill-slate-900 text-[8px]">{measurements.sIzq}cm</text>}
+            
             {/* Saída Dereita */}
             <text x="190" y="68" textAnchor="middle" transform="rotate(78, 190, 68)" className="fill-slate-500">S. Der</text>
+            {measurements.sDer > 0 && <text x="178" y="68" textAnchor="middle" transform="rotate(78, 178, 68)" className="fill-slate-900 text-[8px]">{measurements.sDer}cm</text>}
+            
             {/* Diagonales */}
             <text x="70" y="58" textAnchor="middle" className="fill-amber-500">D1</text>
+            {measurements.diag1 > 0 && <text x="70" y="65" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.diag1}cm</text>}
+            
             <text x="130" y="58" textAnchor="middle" className="fill-amber-500">D2</text>
+            {measurements.diag2 > 0 && <text x="130" y="65" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.diag2}cm</text>}
           </g>
 
           {/* Puntos de anclaje (Vértices) */}
