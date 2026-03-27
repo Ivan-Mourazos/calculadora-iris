@@ -18,6 +18,7 @@ interface Toldo {
   measurements: Measurements;
   result: ValidationResult | null;
   isOfConfirmed?: boolean;
+  isConfigCollapsed?: boolean;
 }
 
 function App() {
