@@ -23,7 +23,10 @@ function App() {
   const [isClientDataCollapsed, setIsClientDataCollapsed] = useState(false)
   const [clientData, setClientData] = useState({
     pedido: '',
-    responsable: ''
+    cliente: '',
+    localidade: '',
+    responsable: '',
+    data: new Date().toISOString().split('T')[0]
   })
   
   const [toldos, setToldos] = useState<Toldo[]>([
@@ -64,7 +67,7 @@ function App() {
       }
     ])
     // Ao engadir un toldo, se os datos do cliente están listos, colapsamos para dar espazo
-    if (clientData.pedido && clientData.responsable) {
+    if (clientData.pedido && clientData.responsable && clientData.cliente) {
       setIsClientDataCollapsed(true);
     }
   }
@@ -93,7 +96,7 @@ function App() {
     }))
   }
 
-  const isClientDataComplete = clientData.pedido && clientData.responsable;
+  const isClientDataComplete = clientData.pedido && clientData.responsable && clientData.cliente;
   const isOrderBlocked = toldos.some(t => t.result?.status === 'VERMELLO' || t.result?.status === 'ERROR')
   const isOrderEmpty = toldos.some(t => !t.result)
 
@@ -131,7 +134,7 @@ function App() {
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-10">
         
         {/* Sección de Datos de Cliente (Colapsable) */}
-        <section className={`bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 overflow-hidden transition-all duration-500 ${isClientDataCollapsed ? 'max-h-24' : 'max-h-[500px]'}`}>
+        <section className={`bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 overflow-hidden transition-all duration-500 ${isClientDataCollapsed ? 'max-h-24' : 'max-h-[800px]'}`}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -151,18 +154,35 @@ function App() {
             </div>
 
             {isClientDataCollapsed ? (
-              <div className="flex gap-3 flex-wrap animate-in fade-in zoom-in-95">
-                <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2">
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Pedido:</span>
-                  <span className="text-xs font-bold text-blue-800">{clientData.pedido}</span>
+              <div className="flex gap-2 flex-wrap animate-in fade-in zoom-in-95">
+                <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2 max-w-[200px] truncate">
+                  <span className="text-xs font-bold text-blue-800">{clientData.cliente}</span>
                 </div>
                 <div className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Responsable:</span>
-                  <span className="text-xs font-bold text-slate-700">{clientData.responsable}</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Pedido/OF:</span>
+                  <span className="text-xs font-bold text-slate-700">{clientData.pedido}</span>
+                </div>
+                <div className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Localidade:</span>
+                  <span className="text-xs font-bold text-slate-700">{clientData.localidade}</span>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2">
+                <div className="md:col-span-2">
+                  <GlobalInput 
+                    label="Nome do Cliente / Empresa" 
+                    value={clientData.cliente} 
+                    onChange={v => setClientData({...clientData, cliente: v})} 
+                    icon={<User size={14} />} 
+                  />
+                </div>
+                <GlobalInput 
+                  label="Localidade / Dirección" 
+                  value={clientData.localidade} 
+                  onChange={v => setClientData({...clientData, localidade: v})} 
+                  icon={<Box size={14} />} 
+                />
                 <GlobalInput 
                   label="Pedido / Oportunidade" 
                   value={clientData.pedido} 
@@ -170,10 +190,17 @@ function App() {
                   icon={<ClipboardList size={14} />} 
                 />
                 <GlobalInput 
-                  label="Responsable da Medición" 
+                  label="Responsable" 
                   value={clientData.responsable} 
                   onChange={v => setClientData({...clientData, responsable: v})} 
                   icon={<User size={14} />} 
+                />
+                 <GlobalInput 
+                  label="Data" 
+                  type="date"
+                  value={clientData.data} 
+                  onChange={v => setClientData({...clientData, data: v})} 
+                  icon={<ClipboardList size={14} />} 
                 />
               </div>
             )}
