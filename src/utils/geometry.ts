@@ -1,12 +1,3 @@
-export function calculateHeronArea(a: number, b: number, c: number): number {
-  if (a <= 0 || b <= 0 || c <= 0) return 0;
-  if (a + b <= c || a + c <= b || b + c <= a) return -1;
-  const s = (a + b + c) / 2;
-  const val = s * (s - a) * (s - b) * (s - c);
-  if (val < 0) return -1;
-  return Math.sqrt(val);
-}
-
 export interface Measurements {
   fSup: number;
   fInf: number;
@@ -23,6 +14,10 @@ export interface ValidationResult {
   message: string;
   errorCm: number;
   isPossible: boolean;
+  sideOffsets?: {
+    izq: number;
+    der: number;
+  };
 }
 
 export function validateMeasurements(m: Measurements): ValidationResult | null {
@@ -30,24 +25,31 @@ export function validateMeasurements(m: Measurements): ValidationResult | null {
   
   if (!fSup || !sIzq || !sDer || !diag1 || !diag2) return null
 
-  // Segundo a fórmula do Excel: ABS(DiagonalCalculada - DiagonalMedida)
-  // Diagonal teórica usando Pitágoras (Escuadrado perfecto)
-  const diag1Teorica = Math.sqrt(Math.pow(fSup, 2) + Math.pow(sIzq, 2))
-  const diag2Teorica = Math.sqrt(Math.pow(fSup, 2) + Math.pow(sDer, 2))
+  /**
+   * FÓRMULA EXCEL TGM (Descuadre lateral proyectado):
+   * Descuadre = ABS((Diagonal^2 - Frente^2 - Salida^2) / (2 * Frente))
+   * Este valor representa os cm/mm que o lateral se desvía da perpendicular.
+   */
+  const calcOffset = (f: number, s: number, d: number) => {
+    const num = Math.pow(d, 2) - Math.pow(f, 2) - Math.pow(s, 2);
+    const den = 2 * f;
+    return Math.abs(num / den);
+  };
 
-  const diff1 = Math.abs(diag1Teorica - diag1)
-  const diff2 = Math.abs(diag2Teorica - diag2)
+  const offsetIzq = calcOffset(fSup, sIzq, diag1);
+  const offsetDer = calcOffset(fSup, sDer, diag2);
 
-  // Tomamos o erro máximo detectado
-  const errorCm = Math.max(diff1, diff2)
+  // O erro que marca o Excel é o valor deste descuadre
+  const errorCm = Math.max(offsetIzq, offsetDer);
 
-  // Umbrais según o Excel: <= 0.5 (Verde), <= 1 (Amarillo), > 1 (Vermello)
+  // Umbrais según o Excel: > 1cm é Erro en medida
   if (errorCm <= 0.5) {
     return {
       isPossible: true,
       status: 'VERDE',
-      message: 'Medida Perfecta (<5mm). Escuadrado correcto para Iris.',
-      errorCm
+      message: 'Medida Perfecta. Escuadrado dentro do rango ideal (<5mm).',
+      errorCm,
+      sideOffsets: { izq: offsetIzq, der: offsetDer }
     }
   }
 
@@ -55,24 +57,28 @@ export function validateMeasurements(m: Measurements): ValidationResult | null {
     return {
       isPossible: true,
       status: 'AMARELO',
-      message: `Desfase moderado (<1cm). Oco dentro dos límites de compensación.`,
-      errorCm
+      message: `Desfase moderado (${errorCm.toFixed(1)} cm). O toldo pode necesitar axustes de guías.`,
+      errorCm,
+      sideOffsets: { izq: offsetIzq, der: offsetDer }
     }
   }
 
-  if (errorCm <= 3.0) {
+  // Se o erro é maior de 1cm, o Excel márcao como Crítico/Vermello
+  if (errorCm > 1.0) {
     return {
       isPossible: true,
       status: 'VERMELLO',
-      message: `Desfase crítico (>1cm). Revisar oco ou usar guías compensadoras.`,
-      errorCm
+      message: `Erro na medida (>1cm). O descuadre lateral é excesivo para este modelo.`,
+      errorCm,
+      sideOffsets: { izq: offsetIzq, der: offsetDer }
     }
   }
 
   return {
     isPossible: false,
     status: 'ERROR',
-    message: `Fóra de rango técnico. O toldo Iris sufrirá graves problemas de apertura.`,
-    errorCm
+    message: `Medidas incompatibles co sistema Iris.`,
+    errorCm,
+    sideOffsets: { izq: offsetIzq, der: offsetDer }
   }
 }
