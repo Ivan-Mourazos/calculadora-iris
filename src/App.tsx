@@ -98,22 +98,31 @@ function App() {
   }
 
   const isOrderBlocked = toldos.some(t => t.result?.status === 'VERMELLO' || t.result?.status === 'ERROR')
-  const isOrderEmpty = toldos.some(t => !t.result)
+  // Orixinalmente os datos do cliente deberían mostrarse sempre ata que se completan
+  const isClientDataComplete = clientData.pedido || clientData.responsable;
+  const isOrderEmpty = toldos.some(t => !t.result) || !isClientDataComplete;
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans pb-32">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20 selection:bg-blue-100">
       {/* Header Premium */}
-      <header className="bg-white/90 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <div className="flex items-center gap-3 sm:gap-4 border-r border-slate-200 pr-3 sm:pr-6">
-              <img src="/faviconTGM.png" alt="TGM Logo" className="h-8 sm:h-10 w-auto object-contain brightness-110 drop-shadow-sm" />
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300">
+        <div className="max-w-4xl mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <img 
+                src="/faviconTGM.png" 
+                alt="Logo TGM" 
+                className="relative h-12 w-12 object-contain bg-white rounded-xl p-1 shadow-sm border border-slate-100"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://www.toldosgomez.com/favicon.ico'
+                }}
+              />
             </div>
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-0.5 sm:mb-1 truncate">
-                Calculadora Iris
+            <div>
+              <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 tracking-tight leading-none">
+                CALCULADORA IRIS
               </h1>
-              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest sm:tracking-[0.2em] truncate">
                 Toldos Gómez
               </p>
             </div>
