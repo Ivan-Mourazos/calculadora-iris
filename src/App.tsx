@@ -106,7 +106,7 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-32 selection:bg-blue-100">
       {/* Header Premium */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
+      <header className="sticky top-0 z-[1000] bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img 
@@ -296,7 +296,7 @@ function App() {
                   </div>
 
                   {!toldo.isModelCollapsed && (
-                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[100] pb-10">
+                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative pb-10">
                       <div className="space-y-5">
                         <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
                         <div className="grid grid-cols-2 gap-4">
@@ -338,7 +338,7 @@ function App() {
                   </div>
 
                   {!toldo.isMaterialCollapsed && (
-                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[90] pb-10">
+                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative pb-10">
                       <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
                       <div className="grid grid-cols-2 gap-4">
                         <Select label="Cristal" value={toldo.cristal} options={['Non', 'Si']} onChange={v => updateToldo(toldo.id, { cristal: v })} />
@@ -363,7 +363,7 @@ function App() {
         </button>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 z-[100]">
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 z-[900]">
         <div className="max-w-4xl mx-auto">
           <button 
             disabled={isOrderBlocked || isOrderEmpty || !isClientDataComplete}
