@@ -526,12 +526,6 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
           <circle cx="180" cy="105" r="2.5" fill="#3b82f6" />
           <circle cx="20" cy="105" r="2.5" fill="#3b82f6" />
         </svg>
-
-        {/* Badge de Ayuda Visual */}
-        <div className="absolute bottom-2 right-2 bg-white/80 backdrop-blur shadow-sm border border-slate-100 px-2 py-1 rounded-lg text-[8px] font-bold text-slate-400 flex items-center gap-1.5">
-          <AlertTriangle size={8} className="text-amber-500" />
-          <span>Medidas reais dende o exterior</span>
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-y-6 gap-x-4">
