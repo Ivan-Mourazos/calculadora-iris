@@ -271,33 +271,47 @@ function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
-                <div className="space-y-6">
-                  <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2 mb-2">
-                    <Box size={14} /> Configuración Técnica
-                  </h4>
-                  <div className="space-y-4">
-                    <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Select label="Cofre" value={toldo.cofre} options={catalog.cofre} onChange={v => updateToldo(toldo.id, { cofre: v })} />
-                      <Select label="Mecanismo" value={toldo.mecanismo} options={catalog.mecanismo} onChange={v => updateToldo(toldo.id, { mecanismo: v })} />
+              {/* Configuración de Modelo e Materiais (Colapsable) */}
+              <div className={`mt-6 border border-slate-200 rounded-3xl overflow-hidden transition-all duration-300 ${toldo.isConfigCollapsed ? 'bg-slate-50/50 py-1' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
+                <button 
+                  onClick={() => updateToldo(toldo.id, { isConfigCollapsed: !toldo.isConfigCollapsed })}
+                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-xl ${toldo.isConfigCollapsed ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}>
+                      <Box size={20} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Select label="Guía Comp." value={toldo.guia} options={catalog.guiaCompensadora} onChange={v => updateToldo(toldo.id, { guia: v })} />
-                      <Select label="Entre Paredes" value={toldo.entreParedes} options={catalog.entreParedes} onChange={v => updateToldo(toldo.id, { entreParedes: v })} />
+                    <div className="text-left">
+                      <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Modelo e Materiais</h4>
+                      {toldo.isConfigCollapsed && (
+                        <p className="text-sm font-bold text-slate-600 truncate max-w-[220px] mt-0.5">
+                          {toldo.tela || 'Sen lona'} · {toldo.modelo || 'Sen modelo'}
+                        </p>
+                      )}
                     </div>
                   </div>
-                </div>
+                  <div className={`text-slate-300 transition-transform duration-500 ${toldo.isConfigCollapsed ? '' : 'rotate-180'}`}>
+                    <ChevronDown size={22} />
+                  </div>
+                </button>
 
-                <div className="space-y-6">
-                  <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] flex items-center gap-2 mb-2">
-                    <Palette size={14} /> Materiais e Acabados
-                  </h4>
-                  <div className="space-y-4">
-                    <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
-                    <Select label="Lacado / RAL" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
+                {!toldo.isConfigCollapsed && (
+                  <div className="p-6 pt-2 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
+                        <div className="grid grid-cols-2 gap-4">
+                          <Select label="Cofre" value={toldo.cofre} options={catalog.cofre} onChange={v => updateToldo(toldo.id, { cofre: v })} />
+                          <Select label="Mecanismo" value={toldo.mecanismo} options={catalog.mecanismo} onChange={v => updateToldo(toldo.id, { mecanismo: v })} />
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
+                        <Select label="Lacado / RAL" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <MeasurementBlock 
