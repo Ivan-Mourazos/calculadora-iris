@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Ruler, AlertTriangle, CheckCircle, XCircle, ChevronRight, Plus, Trash2, Box, Palette, User, ClipboardList } from 'lucide-react'
+import { Ruler, AlertTriangle, CheckCircle, XCircle, ChevronRight, ChevronDown, Plus, Trash2, Box, Palette, User, ClipboardList, ArrowRightLeft, Settings } from 'lucide-react'
 import { validateMeasurements, type Measurements, type ValidationResult } from './utils/geometry'
 import catalog from './data/catalog.json'
 
