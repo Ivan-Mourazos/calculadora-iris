@@ -469,50 +469,90 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
   }
 
   return (
-    <div className="space-y-8 mt-12 bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100">
-      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-        <Ruler size={14} className="text-blue-600" /> Medidas de Oco (cm)
-      </h4>
+    <div className="space-y-6 mt-12 bg-white shadow-sm ring-1 ring-slate-200/60 p-6 rounded-[2.5rem]">
+      <div className="flex items-center justify-between px-2">
+        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+          <Ruler size={14} className="text-blue-600" /> Toma de Medidas (cm)
+        </h4>
+        {result && (
+          <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest ${getStatusClasses()}`}>
+            {result.status}
+          </span>
+        )}
+      </div>
       
-      <div className="relative aspect-video bg-white rounded-3xl border border-slate-200 flex items-center justify-center p-6 shadow-inner">
-        <svg viewBox="0 0 200 150" className="w-full h-full">
-          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="#ebf3ff" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" />
-          <line x1="40" y1="40" x2="170" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4" />
-          <line x1="160" y1="40" x2="30" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4" />
-          <g className="text-[10px] fill-slate-400 font-bold">
-            <text x="65" y="60" textAnchor="middle">D1</text>
-            <text x="135" y="60" textAnchor="middle">D2</text>
+      {/* Diagrama SVG Premium Ampliado */}
+      <div className="relative aspect-[16/10] bg-slate-50/50 rounded-3xl border border-slate-100 flex items-center justify-center p-4">
+        <svg viewBox="0 0 200 150" className="w-full h-full drop-shadow-sm">
+          {/* Sombra proyectada */}
+          <path d="M 40,45 L 160,45 L 170,115 L 30,115 Z" fill="#e2e8f0" opacity="0.3" />
+          
+          {/* El Trapezoide (Oco) */}
+          <path d="M 40,40 L 160,40 L 170,110 L 30,110 Z" fill="#ffffff" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />
+          
+          {/* Diagonales con flechas discretas */}
+          <line x1="40" y1="40" x2="170" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
+          <line x1="160" y1="40" x2="30" y2="110" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
+
+          {/* Etiquetas de Medida (TGM Style) */}
+          <g className="text-[7px] font-black fill-slate-400 uppercase tracking-tighter">
+            {/* Frente Superior */}
+            <text x="100" y="32" textAnchor="middle" className="fill-blue-600">Fr. Sup</text>
+            {/* Frente Inferior */}
+            <text x="100" y="125" textAnchor="middle" className="fill-blue-600">Fr. Inf</text>
+            {/* Saída Esquerda */}
+            <text x="15" y="78" textAnchor="middle" transform="rotate(-78, 15, 78)" className="fill-slate-500">S. Izq</text>
+            {/* Saída Dereita */}
+            <text x="185" y="78" textAnchor="middle" transform="rotate(78, 185, 78)" className="fill-slate-500">S. Der</text>
+            {/* Diagonales */}
+            <text x="75" y="65" textAnchor="middle" className="fill-amber-500">D1</text>
+            <text x="125" y="65" textAnchor="middle" className="fill-amber-500">D2</text>
           </g>
+
+          {/* Puntos de anclaje */}
+          <circle cx="40" cy="40" r="2" fill="#3b82f6" />
+          <circle cx="160" cy="40" r="2" fill="#3b82f6" />
+          <circle cx="170" cy="110" r="2" fill="#3b82f6" />
+          <circle cx="30" cy="110" r="2" fill="#3b82f6" />
         </svg>
+
+        {/* Badge de Ayuda Visual */}
+        <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur shadow-sm border border-slate-100 px-3 py-1.5 rounded-xl text-[9px] font-bold text-slate-400 flex items-center gap-2">
+          <AlertTriangle size={10} className="text-amber-500" />
+          <span>Medidas reais dende o exterior</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
-        <MeasurementInput label="Fronte Superior" value={measurements.fSup} onChange={v => handleNumInput('fSup', v)} />
-        <MeasurementInput label="Fronte Inferior" value={measurements.fInf} onChange={v => handleNumInput('fInf', v)} />
-        <MeasurementInput label="S. Esquerda" value={measurements.sIzq} onChange={v => handleNumInput('sIzq', v)} />
-        <MeasurementInput label="S. Dereita" value={measurements.sDer} onChange={v => handleNumInput('sDer', v)} />
-        <MeasurementInput label="Diagonal 1 (D1)" value={measurements.diag1} onChange={v => handleNumInput('diag1', v)} />
-        <MeasurementInput label="Diagonal 2 (D2)" value={measurements.diag2} onChange={v => handleNumInput('diag2', v)} />
+      <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+        <NumInput label="Frente Superior" value={measurements.fSup} onChange={v => handleNumInput('fSup', v)} icon="fS" />
+        <NumInput label="Frente Inferior" value={measurements.fInf} onChange={v => handleNumInput('fInf', v)} icon="fI" />
+        <NumInput label="Saída Esquerda" value={measurements.sIzq} onChange={v => handleNumInput('sIzq', v)} icon="sE" />
+        <NumInput label="Saída Dereita" value={measurements.sDer} onChange={v => handleNumInput('sDer', v)} icon="sD" />
+        <NumInput label="Diagonal 1" value={measurements.diag1} onChange={v => handleNumInput('diag1', v)} color="amber" icon="D1" />
+        <NumInput label="Diagonal 2" value={measurements.diag2} onChange={v => handleNumInput('diag2', v)} color="amber" icon="D2" />
       </div>
 
       {result && (
-        <div className={`p-6 rounded-3xl border-2 transition-all shadow-lg ${getStatusClasses()}`}>
-          <div className="flex items-start gap-4">
-            {result.status === 'VERDE' ? <CheckCircle size={24} /> : <AlertTriangle size={24} />}
-            <div className="flex-1">
-              <p className="font-black text-base">{result.message}</p>
-              {result.sideOffsets && (
-                <div className="mt-3 flex gap-4 pt-3 border-t border-current/10">
-                  <div className="flex-1 text-center">
-                    <p className="text-[9px] uppercase font-black opacity-60">Esq.</p>
-                    <p className="font-mono text-xs font-bold">{result.sideOffsets.izq.toFixed(1)} cm</p>
-                  </div>
-                  <div className="flex-1 text-center">
-                    <p className="text-[9px] uppercase font-black opacity-60">Der.</p>
-                    <p className="font-mono text-xs font-bold">{result.sideOffsets.der.toFixed(1)} cm</p>
-                  </div>
-                </div>
-              )}
+        <div className={`p-6 rounded-3xl border-2 transition-all animate-in zoom-in-95 duration-500 ${getStatusClasses()}`}>
+          <div className="flex items-center gap-4 mb-4">
+            <div className={`p-3 rounded-2xl bg-white shadow-sm border border-current`}>
+              {result.status === 'VERMELLO' || result.status === 'ERROR' ? <XCircle size={28} /> : <CheckCircle size={28} />}
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5">Diagnóstico Técnico</p>
+              <h5 className="text-lg font-black leading-tight">{result.status}</h5>
+            </div>
+          </div>
+          <p className="text-sm font-bold leading-relaxed mb-6 opacity-90">{result.message}</p>
+          
+          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-current/10">
+            <div className="bg-white/40 p-3 rounded-2xl border border-current/10">
+              <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Desfase Esq.</p>
+              <p className="text-xl font-black">{result.details.offsetL.toFixed(1)}<span className="text-xs ml-0.5">cm</span></p>
+            </div>
+            <div className="bg-white/40 p-3 rounded-2xl border border-current/10">
+              <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Desfase Der.</p>
+              <p className="text-xl font-black">{result.details.offsetR.toFixed(1)}<span className="text-xs ml-0.5">cm</span></p>
             </div>
           </div>
         </div>
@@ -521,18 +561,24 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
   )
 }
 
-function MeasurementInput({ label, value, onChange }: { label: string, value: number, onChange: (v: string) => void }) {
+function NumInput({ label, value, onChange, color = 'blue', icon }: { label: string, value: number, onChange: (v: string) => void, color?: 'blue' | 'amber', icon: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-tight pl-1">{label}</label>
-      <input 
-        type="number" 
-        inputMode="decimal"
-        value={value || ''}
-        onChange={e => onChange(e.target.value)}
-        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-base font-mono font-bold focus:border-blue-500 outline-none transition-all placeholder:text-slate-200"
-        placeholder="0.0"
-      />
+    <div className="flex flex-col gap-2 relative group">
+      <label className="text-[9px] uppercase font-black text-slate-400 tracking-widest pl-1">{label}</label>
+      <div className="relative">
+        <div className={`absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-tighter w-7 h-7 flex items-center justify-center rounded-lg border transition-all
+          ${color === 'blue' ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
+          {icon}
+        </div>
+        <input 
+          type="number" 
+          inputMode="decimal"
+          value={value === 0 ? '' : value} 
+          onChange={e => onChange(e.target.value)} 
+          placeholder="0.0"
+          className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-14 pr-4 py-4 text-base font-black focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-200"
+        />
+      </div>
     </div>
   )
 }
