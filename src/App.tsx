@@ -18,7 +18,8 @@ interface Toldo {
   measurements: Measurements;
   result: ValidationResult | null;
   isOfConfirmed?: boolean;
-  isConfigCollapsed?: boolean;
+  isMaterialCollapsed?: boolean;
+  isModelCollapsed?: boolean;
 }
 
 function App() {
@@ -271,53 +272,81 @@ function App() {
                 </div>
               </div>
 
-              {/* Configuración de Modelo e Materiais (Colapsable) */}
-              <div className={`mt-6 border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isConfigCollapsed ? 'bg-slate-50/50 py-1' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
-                <div 
-                  onClick={() => updateToldo(toldo.id, { isConfigCollapsed: !toldo.isConfigCollapsed })}
-                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-xl text-blue-600 ${toldo.isConfigCollapsed ? 'bg-slate-100' : 'bg-blue-50'}`}>
-                      <Box size={20} />
+              <div className="space-y-4 mt-6">
+                {/* ACORDEÓN 1: MATERIAL */}
+                <div className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isMaterialCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
+                  <div 
+                    onClick={() => updateToldo(toldo.id, { isMaterialCollapsed: !toldo.isMaterialCollapsed })}
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-xl text-amber-600 ${toldo.isMaterialCollapsed ? 'bg-slate-100' : 'bg-amber-50'}`}>
+                        <Palette size={18} />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Materiais</h4>
+                        {toldo.isMaterialCollapsed && (
+                          <p className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
+                            {toldo.tela || 'Sen lona'} · {toldo.lacado || 'Sen lacado'}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Modelo e Materiais</h4>
-                      {toldo.isConfigCollapsed && (
-                        <p className="text-sm font-bold text-slate-600 truncate max-w-[220px] mt-0.5">
-                          {toldo.tela || 'Sen lona'} · {toldo.modelo || 'Sen modelo'}
-                        </p>
-                      )}
+                    <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isMaterialCollapsed ? '' : 'rotate-180'}`} />
+                  </div>
+
+                  {!toldo.isMaterialCollapsed && (
+                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[100] pb-10">
+                      <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Select label="Cristal" value={toldo.cristal} options={['Non', 'Si']} onChange={v => updateToldo(toldo.id, { cristal: v })} />
+                        <Select label="Lacado (estrutura)" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
+                      </div>
                     </div>
-                  </div>
-                  <div className={`text-slate-300 transition-transform duration-500 ${toldo.isConfigCollapsed ? '' : 'rotate-180'}`}>
-                    <ChevronDown size={22} />
-                  </div>
+                  )}
                 </div>
 
-                {!toldo.isConfigCollapsed && (
-                  <div className="p-6 pt-2 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500 relative z-[100] pb-20">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
+                {/* ACORDEÓN 2: MODELO */}
+                <div className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isModelCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
+                  <div 
+                    onClick={() => updateToldo(toldo.id, { isModelCollapsed: !toldo.isModelCollapsed })}
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-xl text-blue-600 ${toldo.isModelCollapsed ? 'bg-slate-100' : 'bg-blue-50'}`}>
+                        <Box size={18} />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modelo e Configuración</h4>
+                        {toldo.isModelCollapsed && (
+                          <p className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
+                            {toldo.modelo || 'Sen modelo'} · {toldo.mecanismo || 'Sen mecanismo'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isModelCollapsed ? '' : 'rotate-180'}`} />
+                  </div>
+
+                  {!toldo.isModelCollapsed && (
+                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative z-[90] pb-10">
+                      <div className="space-y-5">
                         <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
                         <div className="grid grid-cols-2 gap-4">
                           <Select label="Cofre" value={toldo.cofre} options={catalog.cofre} onChange={v => updateToldo(toldo.id, { cofre: v })} />
-                          <Select label="Mecanismo" value={toldo.mecanismo} options={catalog.mecanismo} onChange={v => updateToldo(toldo.id, { mecanismo: v })} />
+                          <Select label="Guía compensadora" value={toldo.guia} options={catalog.guiaCompensadora} onChange={v => updateToldo(toldo.id, { guia: v })} />
                         </div>
                       </div>
-                      <div className="space-y-4">
-                        <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
-                        <Select label="Lacado / RAL" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
+                      <div className="space-y-5">
+                        <Select label="Mecanismo" value={toldo.mecanismo} options={catalog.mecanismo} onChange={v => updateToldo(toldo.id, { mecanismo: v })} />
+                        <div className="grid grid-cols-2 gap-4">
+                          <Select label="SWBS" value={toldo.swbs} options={['Si', 'Non']} onChange={v => updateToldo(toldo.id, { swbs: v })} />
+                          <Select label="Entre paredes" value={toldo.entreParedes} options={catalog.entreParedes} onChange={v => updateToldo(toldo.id, { entreParedes: v })} />
+                        </div>
                       </div>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); updateToldo(toldo.id, { isConfigCollapsed: true }); }}
-                      className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                    >
-                      Pechar Configuración
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <MeasurementBlock 
