@@ -87,7 +87,7 @@ function App() {
         const updated = { ...t, ...updates }
         if (updates.measurements || updates.modelo) {
           const m = updated.measurements
-          if (m.fSup > 0 && m.sIzq > 0 && m.sDer > 0 && m.diag1 > 0 && m.diag2 > 0) {
+          if (m.fSup > 0 && m.fInf > 0 && m.sIzq > 0 && m.sDer > 0 && m.diag1 > 0 && m.diag2 > 0) {
             updated.result = validateMeasurements(m)
           } else {
             updated.result = null
@@ -565,6 +565,26 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
               <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Desfase Der.</p>
               <p className="text-xl font-black">{result.details.offsetR.toFixed(1)}<span className="text-xs ml-0.5">cm</span></p>
             </div>
+          </div>
+
+          {/* Lóxica de Cálculo (Transparencia) */}
+          <div className="mt-6 pt-4 border-t border-current/10">
+            <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-3 flex items-center gap-2">
+              <ArrowRightLeft size={10} /> Transparencia Matemática
+            </p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-[10px] font-bold">
+                <span className="opacity-70">Esquerda (Real vs Ideal):</span>
+                <span>{measurements.diag1}cm / <span className="opacity-50">{result.details.theoDiagL.toFixed(1)}cm</span></span>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-bold">
+                <span className="opacity-70">Dereita (Real vs Ideal):</span>
+                <span>{measurements.diag2}cm / <span className="opacity-50">{result.details.theoDiagR.toFixed(1)}cm</span></span>
+              </div>
+            </div>
+            <p className="text-[8px] mt-4 italic opacity-50 leading-tight">
+              * O sistema iris tolera un desfase máximo de 1.0cm entre a medida real e a perpendicular ideal calculada por Pitágoras.
+            </p>
           </div>
         </div>
       )}

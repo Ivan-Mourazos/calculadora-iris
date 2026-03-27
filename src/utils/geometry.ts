@@ -14,21 +14,29 @@ export interface ValidationResult {
   message: string;
   errorCm: number;
   isPossible: boolean;
-  sideOffsets?: {
-    izq: number;
-    der: number;
+  details: {
+    offsetL: number;
+    offsetR: number;
+    theoDiagL: number;
+    theoDiagR: number;
   };
 }
 
 export function validateMeasurements(m: Measurements): ValidationResult | null {
-  const { fSup, sIzq, sDer, diag1, diag2 } = m
+  const { fSup, fInf, sIzq, sDer, diag1, diag2 } = m
   
-  if (!fSup || !sIzq || !sDer || !diag1 || !diag2) return null
+  if (!fSup || !fInf || !sIzq || !sDer || !diag1 || !diag2) return null
+
+  /**
+   * CÁLCULO DE DIAGONAL TEÓRICA (Pitágoras):
+   * d = sqrt(f^2 + s^2)
+   */
+  const theoDiagL = Math.sqrt(Math.pow(fSup, 2) + Math.pow(sIzq, 2));
+  const theoDiagR = Math.sqrt(Math.pow(fSup, 2) + Math.pow(sDer, 2));
 
   /**
    * FÓRMULA EXCEL TGM (Descuadre lateral proyectado):
    * Descuadre = ABS((Diagonal^2 - Frente^2 - Salida^2) / (2 * Frente))
-   * Este valor representa os cm/mm que o lateral se desvía da perpendicular.
    */
   const calcOffset = (f: number, s: number, d: number) => {
     const num = Math.pow(d, 2) - Math.pow(f, 2) - Math.pow(s, 2);
@@ -36,49 +44,32 @@ export function validateMeasurements(m: Measurements): ValidationResult | null {
     return Math.abs(num / den);
   };
 
-  const offsetIzq = calcOffset(fSup, sIzq, diag1);
-  const offsetDer = calcOffset(fSup, sDer, diag2);
+  const offsetL = calcOffset(fSup, sIzq, diag1);
+  const offsetR = calcOffset(fSup, sDer, diag2);
 
-  // O erro que marca o Excel é o valor deste descuadre
-  const errorCm = Math.max(offsetIzq, offsetDer);
+  const errorCm = Math.max(offsetL, offsetR);
 
-  // Umbrais según o Excel: > 1cm é Erro en medida
-  if (errorCm <= 0.5) {
-    return {
-      isPossible: true,
-      status: 'VERDE',
-      message: 'Medida Perfecta. Escuadrado dentro do rango ideal (<5mm).',
-      errorCm,
-      sideOffsets: { izq: offsetIzq, der: offsetDer }
-    }
-  }
+  let status: Status = 'VERDE';
+  let message = 'Escuadrado Perfecto (±0.5cm).';
 
-  if (errorCm <= 1.0) {
-    return {
-      isPossible: true,
-      status: 'AMARELO',
-      message: `Desfase moderado (${errorCm.toFixed(1)} cm). O toldo pode necesitar axustes de guías.`,
-      errorCm,
-      sideOffsets: { izq: offsetIzq, der: offsetDer }
-    }
-  }
-
-  // Se o erro é maior de 1cm, o Excel márcao como Crítico/Vermello
   if (errorCm > 1.0) {
-    return {
-      isPossible: true,
-      status: 'VERMELLO',
-      message: `Erro na medida (>1cm). O descuadre lateral é excesivo para este modelo.`,
-      errorCm,
-      sideOffsets: { izq: offsetIzq, der: offsetDer }
-    }
+    status = 'VERMELLO';
+    message = 'Erro na medida (>1cm). Revisar cotas.';
+  } else if (errorCm > 0.5) {
+    status = 'AMARELO';
+    message = 'Desfase moderado. Require axuste de guías.';
   }
 
   return {
-    isPossible: false,
-    status: 'ERROR',
-    message: `Medidas incompatibles co sistema Iris.`,
+    isPossible: true,
+    status,
+    message,
     errorCm,
-    sideOffsets: { izq: offsetIzq, der: offsetDer }
+    details: {
+      offsetL,
+      offsetR,
+      theoDiagL,
+      theoDiagR
+    }
   }
 }
