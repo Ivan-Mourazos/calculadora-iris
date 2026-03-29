@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Ruler, AlertTriangle, CheckCircle, XCircle, ChevronRight, ChevronDown, Plus, Trash2, Box, Palette, User, ClipboardList, ArrowRightLeft, Settings } from 'lucide-react'
+import { Ruler, AlertTriangle, CheckCircle, XCircle, ChevronRight, ChevronDown, Plus, Trash2, Box, Palette, User, ClipboardList, ArrowRightLeft, Settings, Mail, Lock, LogIn, LogOut } from 'lucide-react'
 import { validateMeasurements, type Measurements, type ValidationResult } from './utils/geometry'
 import catalog from './data/catalog.json'
 
 interface Toldo {
   id: string;
-  of: string;
   modelo: string;
   cofre: string;
   guia: string;
@@ -17,15 +16,15 @@ interface Toldo {
   lacado: string;
   measurements: Measurements;
   result: ValidationResult | null;
-  isOfConfirmed?: boolean;
   isMaterialCollapsed?: boolean;
   isModelCollapsed?: boolean;
 }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isClientDataCollapsed, setIsClientDataCollapsed] = useState(false)
   const [clientData, setClientData] = useState({
-    pedido: '',
     cliente: '',
     localidade: '',
     responsable: '',
@@ -35,7 +34,6 @@ function App() {
   const [toldos, setToldos] = useState<Toldo[]>([
     {
       id: crypto.randomUUID(),
-      of: '',
       modelo: '',
       cofre: '',
       guia: '',
@@ -55,7 +53,6 @@ function App() {
       ...prev,
       {
         id: crypto.randomUUID(),
-        of: '',
         modelo: '',
         cofre: '',
         guia: '',
@@ -70,7 +67,7 @@ function App() {
       }
     ])
     // Ao engadir un toldo, se os datos do cliente están listos, colapsamos para dar espazo
-    if (clientData.pedido && clientData.responsable && clientData.cliente) {
+    if (clientData.responsable && clientData.cliente) {
       setIsClientDataCollapsed(true);
     }
   }
@@ -99,9 +96,15 @@ function App() {
     }))
   }
 
-  const isClientDataComplete = clientData.pedido && clientData.responsable && clientData.cliente;
+  const isClientDataComplete = clientData.responsable && clientData.cliente;
   const isOrderBlocked = toldos.some(t => t.result?.status === 'VERMELLO' || t.result?.status === 'ERROR')
   const isOrderEmpty = toldos.some(t => !t.result)
+  if (!isAuthenticated) {
+    return <Login onLogin={(user) => {
+      setIsAuthenticated(true);
+      setClientData(prev => ({ ...prev, responsable: user.split('@')[0].replace('.', ' ').toUpperCase() }));
+    }} />
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-32 selection:bg-blue-100">
@@ -124,12 +127,45 @@ function App() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Activa</span>
+          <div className="relative">
+            <button 
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className={`flex items-center gap-2 group p-2 rounded-xl transition-all cursor-pointer ${isUserMenuOpen ? 'bg-blue-50 ring-1 ring-blue-100' : 'hover:bg-slate-100'}`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className={`text-[10px] font-black tracking-wider uppercase truncate max-w-[120px] transition-colors ${isUserMenuOpen ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600'}`}>
+                {clientData.responsable || 'Técnico'}
+              </span>
+              <ChevronDown size={14} className={`text-slate-300 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180 text-blue-400' : ''}`} />
+            </button>
+
+            {isUserMenuOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-[100]" 
+                  onClick={() => setIsUserMenuOpen(false)} 
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-[110] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                  <div className="px-4 py-2 border-b border-slate-50 mb-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sesión técnica</p>
+                    <p className="text-[11px] font-bold text-slate-900 truncate">{clientData.responsable}</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      setIsAuthenticated(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Pechar sesión
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -144,12 +180,6 @@ function App() {
                 <div className="px-3 py-1.5 bg-blue-600 text-white rounded-lg flex items-center gap-2 whitespace-nowrap shadow-sm">
                   <span className="text-[10px] font-black">{clientData.cliente || 'Sen nome'}</span>
                 </div>
-                {clientData.pedido && (
-                  <div className="px-3 py-1.5 bg-white text-slate-600 rounded-lg flex items-center gap-2 whitespace-nowrap border border-slate-200 shadow-sm">
-                    <span className="text-[9px] font-black opacity-40 uppercase">Ped:</span>
-                    <span className="text-[10px] font-bold">{clientData.pedido}</span>
-                  </div>
-                )}
               </div>
               <button 
                 onClick={() => setIsClientDataCollapsed(false)}
@@ -160,21 +190,16 @@ function App() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
-                    <User size={18} />
+                  <div className="p-2.5 bg-blue-50 rounded-2xl text-blue-600 shadow-sm shadow-blue-100">
+                    <User size={20} />
                   </div>
-                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Datos do Cliente</h2>
+                  <div>
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Datos do Cliente</h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Información da obra</p>
+                  </div>
                 </div>
-                {isClientDataComplete && (
-                  <button 
-                    onClick={() => setIsClientDataCollapsed(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-                  >
-                    CONFIRMAR
-                  </button>
-                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2">
@@ -192,14 +217,9 @@ function App() {
                   onChange={v => setClientData({...clientData, localidade: v})} 
                   icon={<Box size={14} />} 
                 />
+
                 <GlobalInput 
-                  label="Número de Pedido" 
-                  value={clientData.pedido} 
-                  onChange={v => setClientData({...clientData, pedido: v})} 
-                  icon={<ClipboardList size={14} />} 
-                />
-                <GlobalInput 
-                  label="Responsable" 
+                  label="Técnico" 
                   value={clientData.responsable} 
                   onChange={v => setClientData({...clientData, responsable: v})} 
                   icon={<User size={14} />} 
@@ -211,6 +231,19 @@ function App() {
                   onChange={v => setClientData({...clientData, data: v})} 
                   icon={<ClipboardList size={14} />} 
                 />
+
+                <div className="flex items-end">
+                  <button 
+                    disabled={!isClientDataComplete}
+                    onClick={() => setIsClientDataCollapsed(true)}
+                    className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]
+                      ${isClientDataComplete 
+                        ? 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700' 
+                        : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'}`}
+                  >
+                    CONFIRMAR DATOS
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -228,42 +261,6 @@ function App() {
                   <h3 className="text-xl font-black text-slate-900">Toldo {index + 1}</h3>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 flex items-center gap-2 shadow-inner transition-all duration-300 min-w-[120px] justify-end">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">OF</span>
-                    {toldo.isOfConfirmed ? (
-                      <div className="flex items-center gap-2 group/of">
-                        <span className="text-sm font-black text-blue-600 font-mono tracking-tighter">{toldo.of || '---'}</span>
-                        <button 
-                          onClick={() => updateToldo(toldo.id, { isOfConfirmed: false })}
-                          className="p-1 text-slate-300 hover:text-blue-500 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <input 
-                          value={toldo.of}
-                          autoFocus={toldo.of === ''}
-                          onChange={e => updateToldo(toldo.id, { of: e.target.value })}
-                          onKeyDown={e => e.key === 'Enter' && toldo.of && updateToldo(toldo.id, { isOfConfirmed: true })}
-                          onBlur={() => toldo.of && updateToldo(toldo.id, { isOfConfirmed: true })}
-                          placeholder="00000"
-                          className="bg-transparent text-sm font-bold text-slate-900 outline-none w-14 text-right placeholder:text-slate-200"
-                        />
-                        {toldo.of && (
-                          <button 
-                            onClick={() => updateToldo(toldo.id, { isOfConfirmed: true })}
-                            className="p-1 text-emerald-500 hover:bg-emerald-50 rounded-md transition-all shadow-sm border border-emerald-100 bg-white"
-                          >
-                            <CheckCircle size={14} strokeWidth={3} />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
                   {toldos.length > 1 && (
                     <button onClick={() => removeToldo(toldo.id)} className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
                       <Trash2 size={20} />
@@ -603,6 +600,110 @@ function NumInput({ label, value, onChange, color = 'blue', icon }: { label: str
           placeholder="0.0"
           className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-14 pr-4 py-4 text-base font-black focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-200"
         />
+      </div>
+    </div>
+  )
+}
+
+function Login({ onLogin }: { onLogin: (email: string) => void }) {
+  const [email, setEmail] = useState('pruebas@toldosgomez.com')
+  const [code, setCode] = useState('pruebas1234')
+  const [error, setError] = useState('')
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Validación básica: calquera email acabado en @toldosgomez.com e código 2026 ou pruebas1234
+    const isValidCode = code === '2026' || (email === 'pruebas@toldosgomez.com' && code === 'pruebas1234');
+    if (email.endsWith('@toldosgomez.com') && isValidCode) {
+      onLogin(email)
+    } else {
+      setError('Credenciais non válidas. Use o código TGM corporativo.')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-100/50 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-amber-100/50 rounded-full blur-[120px]" />
+
+      <div className="max-w-md w-full animate-in fade-in zoom-in duration-700 relative z-10">
+        <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-2xl shadow-slate-200/50">
+          <div className="flex flex-col items-center mb-10">
+            <img 
+              src="/faviconTGM.png" 
+              alt="Logo TGM" 
+              className="h-20 w-20 object-contain mb-6 drop-shadow-sm"
+              onError={(e) => { e.currentTarget.src = 'https://www.toldosgomez.com/favicon.ico' }}
+            />
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 text-center">
+              ACCESO TÉCNICO
+            </h1>
+            <p className="text-[10px] font-black text-blue-600 tracking-[0.3em] uppercase mt-2">
+              Calculadora Iris · TGM
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1 flex items-center gap-2">
+                <Mail size={12} /> Email Corporativo
+              </label>
+              <input 
+                type="email"
+                required
+                disabled
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="usuario@toldosgomez.com"
+                className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold text-slate-400 outline-none transition-all cursor-not-allowed"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center pl-1">
+                <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest flex items-center gap-2">
+                  <Lock size={12} /> Código de Acceso
+                </label>
+                <button 
+                  type="button"
+                  disabled
+                  className="text-[9px] font-black text-slate-300 uppercase tracking-tighter cursor-not-allowed"
+                >
+                  Esquecín o PIN
+                </button>
+              </div>
+              <input 
+                type="password"
+                required
+                disabled
+                value={code}
+                onChange={e => setCode(e.target.value)}
+                placeholder="Introduza o PIN..."
+                className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold text-slate-400 outline-none transition-all cursor-not-allowed"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-[11px] font-bold flex items-center gap-3 animate-shake">
+                <AlertTriangle size={16} />
+                {error}
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-3 hover:bg-blue-700"
+            >
+              ACCEDER AO SISTEMA
+              <LogIn size={16} />
+            </button>
+          </form>
+
+          <p className="text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest mt-10">
+            © 2026 Toldos Gómez · Departamento de Innovación
+          </p>
+        </div>
       </div>
     </div>
   )
