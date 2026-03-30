@@ -18,6 +18,26 @@ interface Toldo {
   result: ValidationResult | null;
   isMaterialCollapsed?: boolean;
   isModelCollapsed?: boolean;
+  of?: string; // Orde de Fabricación (para produción)
+}
+
+interface Pedido {
+  id: string;
+  cliente: string;
+  localidade: string;
+  responsable: string;
+  data: string;
+  estado: 'PENDENTE' | 'PRODUCION' | 'OFICINA_TECNICA' | 'MONTAXE';
+  numeroPedido?: string; // Número de pedido (para produción)
+  toldos: Toldo[];
+  imaxes?: string[]; // Array de imaxes en Base64
+  comentarios?: string;
+  datasEstados?: {
+    PENDENTE?: string;
+    PRODUCION?: string;
+    OFICINA_TECNICA?: string;
+    MONTAXE?: string;
+  };
 }
 
 function App() {
@@ -28,9 +48,40 @@ function App() {
     cliente: '',
     localidade: '',
     responsable: '',
+    comentarios: '',
     data: new Date().toISOString().split('T')[0]
   })
   
+  const scrollToElement = (id: string, offset = 100) => {
+    setTimeout(() => {
+      const element = document.getElementById(id);
+      if (element) {
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 150);
+  };
+
+  const [pedidos, setPedidos] = useState<Pedido[]>(() => {
+    const saved = localStorage.getItem('tgm_pedidos');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [currentView, setCurrentView] = useState<'form' | 'list' | 'detail'>('form');
+  const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
+  const [editingPedidoId, setEditingPedidoId] = useState<string | null>(null);
+  const [currentImaxes, setCurrentImaxes] = useState<string[]>([]);
+
+  // Sync pedidos con localStorage
+  const saveToLocalStorage = (newPedidos: Pedido[]) => {
+    localStorage.setItem('tgm_pedidos', JSON.stringify(newPedidos));
+  };
+
   const [toldos, setToldos] = useState<Toldo[]>([
     {
       id: crypto.randomUUID(),
@@ -69,6 +120,7 @@ function App() {
     // Ao engadir un toldo, se os datos do cliente están listos, colapsamos para dar espazo
     if (clientData.responsable && clientData.cliente) {
       setIsClientDataCollapsed(true);
+      scrollToElement('client-section');
     }
   }
 
@@ -96,9 +148,180 @@ function App() {
     }))
   }
 
-  const isClientDataComplete = clientData.responsable && clientData.cliente;
+  const isClientDataComplete = clientData.responsable && clientData.cliente && clientData.localidade;
+  const isToldosConfigComplete = toldos.every(t => t.modelo && t.mecanismo && t.tela && t.lacado);
   const isOrderBlocked = toldos.some(t => t.result?.status === 'VERMELLO' || t.result?.status === 'ERROR')
   const isOrderEmpty = toldos.some(t => !t.result)
+  const canSaveOrder = isClientDataComplete && isToldosConfigComplete && !isOrderBlocked && !isOrderEmpty;
+
+  const handleSavePedido = () => {
+    if (!canSaveOrder) return;
+
+    const newPedido: Pedido = {
+      id: editingPedidoId || crypto.randomUUID(),
+      cliente: clientData.cliente,
+      localidade: clientData.localidade,
+      responsable: clientData.responsable,
+      data: clientData.data,
+      estado: 'PENDENTE',
+      toldos: toldos,
+      imaxes: currentImaxes,
+      comentarios: clientData.comentarios,
+      datasEstados: editingPedidoId 
+        ? pedidos.find(p => p.id === editingPedidoId)?.datasEstados 
+        : { PENDENTE: new Date().toISOString() }
+    };
+
+    setPedidos(prev => {
+      let updated;
+      if (editingPedidoId) {
+        updated = prev.map(p => p.id === editingPedidoId ? newPedido : p);
+      } else {
+        updated = [newPedido, ...prev];
+      }
+      saveToLocalStorage(updated);
+      return updated;
+    });
+
+    // Resetear formulario
+    setToldos([{
+      id: crypto.randomUUID(),
+      modelo: '', cofre: '', guia: '', mecanismo: '', swbs: 'Non', entreParedes: '', tela: '', cristal: 'Non', lacado: '',
+      measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null
+    }]);
+    setClientData(prev => ({ ...prev, cliente: '', localidade: '', comentarios: '' }));
+    setIsClientDataCollapsed(false);
+    setEditingPedidoId(null);
+    setCurrentImaxes([]);
+    setCurrentView('list');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const loadPedidoForEditing = (pedido: Pedido) => {
+    setClientData({
+      cliente: pedido.cliente,
+      localidade: pedido.localidade,
+      responsable: pedido.responsable,
+      comentarios: pedido.comentarios || '',
+      data: pedido.data
+    });
+    setToldos(pedido.toldos);
+    setEditingPedidoId(pedido.id);
+    setIsClientDataCollapsed(true);
+    setCurrentImaxes(pedido.imaxes || []);
+    setCurrentView('form');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Redimensionar para aforrar espacio en localStorage
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setCurrentImaxes(prev => [...prev, dataUrl]);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setCurrentImaxes(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const deletePedido = (id: string) => {
+    if (window.confirm('¿Seguro que queres eliminar este pedido? Esta acción non se pode desfacer.')) {
+      setPedidos(prev => {
+        const updated = prev.filter(p => p.id !== id);
+        saveToLocalStorage(updated);
+        return updated;
+      });
+      if (selectedPedido?.id === id) {
+        setCurrentView('list');
+        setSelectedPedido(null);
+      }
+    }
+  };
+
+  const simulateProcessing = (id: string, status: Pedido['estado']) => {
+    setPedidos(prev => {
+      const updated = prev.map(p => {
+        if (p.id === id) {
+          const newStatus = status;
+          const updates: Partial<Pedido> = { 
+            estado: newStatus,
+            datasEstados: {
+              ...(p.datasEstados || {}),
+              [newStatus]: new Date().toISOString()
+            }
+          };
+          
+          return { ...p, ...updates };
+        }
+        return p;
+      });
+      saveToLocalStorage(updated);
+      return updated;
+    });
+    if (selectedPedido?.id === id) {
+       setSelectedPedido(prev => {
+         if (!prev) return null;
+         const now = new Date().toISOString();
+         const updated = { 
+           ...prev, 
+           estado: status,
+           datasEstados: {
+             ...(prev.datasEstados || {}),
+             [status]: now
+           }
+         };
+         return updated as Pedido;
+       });
+    }
+  };
+
+  const formatDate = (dateValue: string) => {
+    if (!dateValue) return '';
+    try {
+      const d = new Date(dateValue);
+      if (isNaN(d.getTime())) return dateValue;
+      return d.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return dateValue;
+    }
+  };
+
   if (!isAuthenticated) {
     return <Login onLogin={(user) => {
       setIsAuthenticated(true);
@@ -156,6 +379,34 @@ function App() {
                   <button 
                     onClick={() => {
                       setIsUserMenuOpen(false);
+                      setCurrentView('list');
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors border-b border-slate-50"
+                  >
+                    <ClipboardList size={16} className="text-blue-500" />
+                    Os meus pedidos
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setEditingPedidoId(null);
+                      setToldos([{
+                        id: crypto.randomUUID(),
+                        modelo: '', cofre: '', guia: '', mecanismo: '', swbs: 'Non', entreParedes: '', tela: '', cristal: 'Non', lacado: '',
+                        measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null
+                      }]);
+                      setClientData(prev => ({ ...prev, cliente: '', localidade: '' }));
+                      setIsClientDataCollapsed(false);
+                      setCurrentView('form');
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors border-b border-slate-50"
+                  >
+                    <Plus size={16} className="text-emerald-500" />
+                    Novo pedido
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
                       setIsAuthenticated(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
@@ -170,210 +421,622 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-10">
+      <main className="max-w-4xl mx-auto px-4 py-8">
         
-        {/* Sección de Datos de Cliente (Colapsable) */}
-        <section className={`transition-all duration-300 ${isClientDataCollapsed ? 'bg-slate-100/50 py-2 px-4 rounded-2xl border border-slate-200' : 'bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 p-6'}`}>
-          {isClientDataCollapsed ? (
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 flex-1">
-                <div className="px-3 py-1.5 bg-blue-600 text-white rounded-lg flex items-center gap-2 whitespace-nowrap shadow-sm">
-                  <span className="text-[10px] font-black">{clientData.cliente || 'Sen nome'}</span>
-                </div>
+        {currentView === 'list' ? (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Os meus Pedidos</h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Histórico de medicións</p>
               </div>
               <button 
-                onClick={() => setIsClientDataCollapsed(false)}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                onClick={() => setCurrentView('form')}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all flex items-center gap-2"
               >
-                <span className="text-[9px] font-black uppercase tracking-widest">Editar</span>
+                <Plus size={16} /> Novo Cálculo
               </button>
             </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-50 rounded-2xl text-blue-600 shadow-sm shadow-blue-100">
-                    <User size={20} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Datos do Cliente</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Información da obra</p>
-                  </div>
+
+            {pedidos.length === 0 ? (
+              <div className="bg-white rounded-[2.5rem] p-20 border-2 border-dashed border-slate-200 flex flex-col items-center text-center">
+                <div className="p-6 bg-slate-50 rounded-full text-slate-300 mb-6">
+                  <ClipboardList size={48} />
                 </div>
+                <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Aínda non hai pedidos</h3>
+                <p className="text-sm text-slate-300 font-bold mt-2">Os teus cálculos aparecerán aquí despois de gardalos.</p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2">
-                <div className="md:col-span-2">
-                  <GlobalInput 
-                    label="Nome do Cliente / Empresa" 
-                    value={clientData.cliente} 
-                    onChange={v => setClientData({...clientData, cliente: v})} 
-                    icon={<User size={14} />} 
-                  />
-                </div>
-                <GlobalInput 
-                  label="Localidade / Dirección" 
-                  value={clientData.localidade} 
-                  onChange={v => setClientData({...clientData, localidade: v})} 
-                  icon={<Box size={14} />} 
-                />
-
-                <GlobalInput 
-                  label="Técnico" 
-                  value={clientData.responsable} 
-                  onChange={v => setClientData({...clientData, responsable: v})} 
-                  icon={<User size={14} />} 
-                />
-                 <GlobalInput 
-                  label="Data" 
-                  type="date"
-                  value={clientData.data} 
-                  onChange={v => setClientData({...clientData, data: v})} 
-                  icon={<ClipboardList size={14} />} 
-                />
-
-                <div className="flex items-end">
-                  <button 
-                    disabled={!isClientDataComplete}
-                    onClick={() => setIsClientDataCollapsed(true)}
-                    className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]
-                      ${isClientDataComplete 
-                        ? 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700' 
-                        : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'}`}
-                  >
-                    CONFIRMAR DATOS
+            ) : (
+              <div className="space-y-4">
+                {pedidos.map(pedido => (
+                  <div key={pedido.id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-6 group">
+                    <div className="flex items-center gap-5 flex-1 min-w-0">
+                      <div className={`p-3 rounded-2xl shrink-0 ${
+                        pedido.estado === 'PENDENTE' ? 'bg-amber-50 text-amber-500' :
+                        pedido.estado === 'PRODUCION' ? 'bg-blue-50 text-blue-500' :
+                        pedido.estado === 'OFICINA_TECNICA' ? 'bg-purple-50 text-purple-500' :
+                        'bg-emerald-50 text-emerald-500'
+                      }`}>
+                        {pedido.estado === 'PENDENTE' ? <AlertTriangle size={24} /> : <CheckCircle size={24} />}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-col gap-1 mb-1">
+                          <h4 className="font-black text-slate-900 uppercase tracking-tight leading-tight">{pedido.cliente}</h4>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
+                              pedido.estado === 'PENDENTE' ? 'bg-amber-100 text-amber-700' :
+                              pedido.estado === 'PRODUCION' ? 'bg-blue-100 text-blue-700' :
+                              pedido.estado === 'OFICINA_TECNICA' ? 'bg-purple-100 text-purple-700' :
+                              'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {pedido.estado.replace('_', ' ')}
+                            </span>
+                            {pedido.numeroPedido && <span className="text-[8px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">ID: {pedido.numeroPedido}</span>}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
+                          <span className="flex items-center gap-1.5"><ClipboardList size={12} className="text-slate-300" /> {formatDate(pedido.data)}</span>
+                          <span className="flex items-center gap-1.5"><Box size={12} className="text-slate-300" /> {pedido.toldos.length} Toldos</span>
+                          <span className="flex items-center gap-1.5"><User size={12} className="text-slate-300" /> {pedido.responsable}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                       <button 
+                        onClick={() => {
+                          setSelectedPedido(pedido);
+                          setCurrentView('detail');
+                        }}
+                        className="bg-slate-50 text-slate-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
+                      >
+                        Ver Detalle
+                      </button>
+                      {pedido.estado === 'PENDENTE' && (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => loadPedidoForEditing(pedido)}
+                            className="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                          >
+                            Editar
+                          </button>
+                          <button 
+                            onClick={() => deletePedido(pedido.id)}
+                            className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                            title="Eliminar pedido"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : currentView === 'detail' && selectedPedido ? (
+           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="flex items-center justify-between">
+                <div>
+                  <button onClick={() => setCurrentView('list')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1 mb-2 hover:-translate-x-1 transition-transform">
+                    <ArrowRightLeft size={10} /> Volver á lista
                   </button>
+                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Detalles do Pedido</h2>
                 </div>
-              </div>
-            </>
-          )}
-        </section>
-
-        {/* Lista de Toldos */}
-        <div className="space-y-12">
-          {toldos.map((toldo, index) => (
-            <div key={toldo.id} className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-xl shadow-slate-200/40 relative">
-              <div className="flex justify-between items-center mb-10">
-                <div className="flex items-center gap-4">
-                  <span className="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black">
-                    {index + 1}
-                  </span>
-                  <h3 className="text-xl font-black text-slate-900">Toldo {index + 1}</h3>
-                </div>
-                <div className="flex items-center gap-3">
-                  {toldos.length > 1 && (
-                    <button onClick={() => removeToldo(toldo.id)} className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
-                      <Trash2 size={20} />
+                <div className="flex gap-2">
+                  {selectedPedido.estado === 'PENDENTE' && (
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => deletePedido(selectedPedido.id)}
+                        className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all mr-2"
+                        title="Eliminar pedido"
+                      >
+                        <Trash2 size={24} />
+                      </button>
+                      <button 
+                        onClick={() => simulateProcessing(selectedPedido.id, 'PRODUCION')}
+                        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200 active:scale-95 transition-all"
+                      >
+                        Pasar a Produción (Simulación)
+                      </button>
+                    </div>
+                  )}
+                  {selectedPedido.estado === 'PRODUCION' && (
+                    <button 
+                      onClick={() => simulateProcessing(selectedPedido.id, 'MONTAXE')}
+                      className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all"
+                    >
+                      Finalizar Montaxe
                     </button>
                   )}
                 </div>
-              </div>
+             </div>
 
-              <div className="space-y-4 mt-6">
-                {/* ACORDEÓN 1: MODELO E CONFIGURACIÓN */}
-                <div className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isModelCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
-                  <div 
-                    onClick={() => updateToldo(toldo.id, { isModelCollapsed: !toldo.isModelCollapsed })}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-xl text-blue-600 ${toldo.isModelCollapsed ? 'bg-slate-100' : 'bg-blue-50'}`}>
-                        <Box size={18} />
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 space-y-6">
+                  {/* Resumen Cliente */}
+                  <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4">
+                       <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
+                          selectedPedido.estado === 'PENDENTE' ? 'bg-amber-100 text-amber-700' :
+                          selectedPedido.estado === 'PRODUCION' ? 'bg-blue-100 text-blue-700' :
+                          selectedPedido.estado === 'OFICINA_TECNICA' ? 'bg-purple-100 text-purple-700' :
+                          'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {selectedPedido.estado.replace('_', ' ')}
+                        </span>
+                    </div>
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Información da Obra</h3>
+                    <div className="grid grid-cols-2 gap-y-4">
+                      <div>
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Cliente</p>
+                        <p className="text-sm font-black text-slate-800">{selectedPedido.cliente}</p>
                       </div>
-                      <div className="text-left">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modelo e Configuración</h4>
-                        {toldo.isModelCollapsed && (
-                          <p className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
-                            {toldo.modelo || 'Sen modelo'} · {toldo.mecanismo || 'Sen mecanismo'}
-                          </p>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Data</p>
+                        <p className="text-sm font-black text-slate-800">{formatDate(selectedPedido.data)}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                          <Box size={10} /> Localidade / Dirección exacta
+                        </p>
+                        <p className="text-sm font-bold text-slate-800 leading-tight">{selectedPedido.localidade}</p>
+                      </div>
+                    </div>
+
+                    {selectedPedido.comentarios && (
+                      <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                          <ClipboardList size={10} /> Anotacións do Técnico
+                        </p>
+                        <p className="text-xs font-medium text-slate-700 whitespace-pre-wrap">{selectedPedido.comentarios}</p>
+                      </div>
+                    )}
+
+                    {selectedPedido.imaxes && selectedPedido.imaxes.length > 0 && (
+                      <div className="mt-8 pt-8 border-t border-slate-100">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Fotos da Obra</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {selectedPedido.imaxes.map((img, idx) => (
+                            <img key={idx} src={img} className="aspect-square w-full object-cover rounded-2xl border border-slate-100 shadow-sm" alt={`Instalación ${idx}`} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(selectedPedido.numeroPedido || selectedPedido.estado === 'PRODUCION') && (
+                      <div className={`mt-6 pt-6 border-t border-slate-50 flex justify-between items-center -mx-6 -mb-6 px-6 py-4 ${selectedPedido.numeroPedido ? 'bg-blue-50/30' : 'bg-amber-50/30'}`}>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${selectedPedido.numeroPedido ? 'text-blue-600' : 'text-amber-600'}`}>Num. Pedido Sistema</p>
+                        <p className={`text-lg font-black tracking-tighter ${selectedPedido.numeroPedido ? 'text-blue-700' : 'text-amber-700 animate-pulse'}`}>
+                          {selectedPedido.numeroPedido || 'PENDENTE DE ASIGNAR'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lista de Productos */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-2">Productos ({selectedPedido.toldos.length})</h3>
+                    {selectedPedido.toldos.map((t, idx) => (
+                      <div key={t.id} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <span className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">{idx + 1}</span>
+                          <div>
+                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{t.modelo || 'Toldo sen modelo'}</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.mecanismo || 'Manual'} · {t.tela || 'Lona estándar'}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {(t.of || selectedPedido.estado === 'PRODUCION') ? (
+                             <div className={`${t.of ? 'bg-indigo-50 border-indigo-100' : 'bg-amber-50 border-amber-100'} px-3 py-1.5 rounded-lg border transition-colors`}>
+                               <p className={`text-[8px] font-black ${t.of ? 'text-indigo-400' : 'text-amber-400'} uppercase tracking-tighter leading-none mb-0.5`}>Ref. Fabricación</p>
+                               <p className={`text-[11px] font-black ${t.of ? 'text-indigo-600' : 'text-amber-600 italic'} tracking-tight leading-none`}>
+                                 {t.of || 'Pendente OF'}
+                               </p>
+                             </div>
+                          ) : (
+                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">A espera de envío</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Sidebar stats/Accións */}
+                   <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Estado do Proceso</h3>
+                     <div className="space-y-0 relative">
+                        {/* Conector Vertical */}
+                        <div className="absolute left-[15px] top-2 bottom-2 w-[2px] bg-slate-100"></div>
+                        
+                        <div className="space-y-8 relative z-10">
+                          <div className="flex items-center gap-5">
+                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${['PENDENTE', 'PRODUCION', 'MONTAXE'].includes(selectedPedido.estado) ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-100 text-slate-400'}`}>
+                               <ClipboardList size={14} />
+                             </div>
+                             <div>
+                                <p className={`text-[11px] font-black uppercase tracking-widest ${selectedPedido.estado === 'PENDENTE' ? 'text-blue-600' : 'text-slate-400'}`}>Presuposto</p>
+                                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">
+                                  {selectedPedido.datasEstados?.PENDENTE ? formatDate(selectedPedido.datasEstados.PENDENTE) : 'Medición completada'}
+                                </p>
+                             </div>
+                           </div>
+ 
+                           <div className="flex items-center gap-5">
+                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${['PRODUCION', 'MONTAXE'].includes(selectedPedido.estado) ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-100 text-slate-400'}`}>
+                               <Settings size={14} />
+                             </div>
+                             <div>
+                                <p className={`text-[11px] font-black uppercase tracking-widest ${selectedPedido.estado === 'PRODUCION' ? 'text-blue-600' : 'text-slate-400'}`}>Produción</p>
+                                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">
+                                  {selectedPedido.datasEstados?.PRODUCION ? formatDate(selectedPedido.datasEstados.PRODUCION) : 'En fabricación'}
+                                </p>
+                             </div>
+                           </div>
+ 
+                           <div className="flex items-center gap-5">
+                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${['MONTAXE'].includes(selectedPedido.estado) ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-400'}`}>
+                               <CheckCircle size={14} />
+                             </div>
+                             <div>
+                                <p className={`text-[11px] font-black uppercase tracking-widest ${selectedPedido.estado === 'MONTAXE' ? 'text-emerald-600' : 'text-slate-400'}`}>Instalado</p>
+                                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">
+                                  {selectedPedido.datasEstados?.MONTAXE ? formatDate(selectedPedido.datasEstados.MONTAXE) : 'Entrega finalizada'}
+                                </p>
+                             </div>
+                          </div>
+                        </div>
+                     </div>
+                   </div>
+
+                   {selectedPedido.estado === 'PENDENTE' && (
+                     <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100">
+                       <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-2 flex items-center gap-2">
+                         <AlertTriangle size={14} /> Pedido Editable
+                       </p>
+                       <p className="text-xs font-medium text-amber-600 leading-relaxed mb-4">Aínda podes modificar as medidas e a configuración antes de pasar a produción.</p>
+                       <button 
+                        onClick={() => loadPedidoForEditing(selectedPedido)}
+                        className="w-full bg-white text-amber-700 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-200 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+                       >
+                         Modificar Medidas
+                       </button>
+                     </div>
+                   )}
+                </div>
+             </div>
+           </div>
+        ) : (
+          <>
+            {/* Formulario Orixinal */}
+            <div className="space-y-10">
+              {/* Sección de Datos de Cliente (Colapsable) */}
+              <section id="client-section" className={`transition-all duration-300 ${isClientDataCollapsed ? 'bg-slate-100/50 py-2 px-4 rounded-2xl border border-slate-200' : 'bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 p-6'}`}>
+                {isClientDataCollapsed ? (
+                  <div className="flex flex-wrap items-center justify-between gap-4 py-1 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                      <div className="px-3 py-1.5 bg-blue-600 text-white rounded-lg flex items-center gap-2 whitespace-nowrap shadow-sm ring-1 ring-blue-500">
+                        <User size={12} strokeWidth={3} />
+                        <span className="text-[10px] font-black">{clientData.cliente || 'Sen nome'}</span>
+                      </div>
+                      <div className="px-3 py-1.5 bg-white text-slate-600 rounded-lg flex items-center gap-2 min-w-0 shadow-sm border border-slate-200 ring-1 ring-slate-100">
+                        <Box size={12} />
+                        <span className="text-[10px] font-black truncate">{clientData.localidade || 'Sen dirección'}</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setIsClientDataCollapsed(false)}
+                      className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all flex items-center gap-2 shrink-0 shadow-sm font-black text-[9px] uppercase tracking-widest"
+                    >
+                      Modificar
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-blue-50 rounded-2xl text-blue-600 shadow-sm shadow-blue-100">
+                          <User size={20} />
+                        </div>
+                        <div>
+                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Datos do Cliente</h2>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Información da obra {editingPedidoId && <span className="text-blue-600">(EDITANDO)</span>}</p>
+                        </div>
+                      </div>
+                    </div>
+  
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2">
+                      <div className="md:col-span-2">
+                        <GlobalInput 
+                          label="Nome do Cliente / Empresa" 
+                          value={clientData.cliente} 
+                          onChange={v => setClientData({...clientData, cliente: v})} 
+                          icon={<User size={14} />} 
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <GlobalInput 
+                          label="Localidade / Dirección Exacta" 
+                          value={clientData.localidade} 
+                          onChange={v => setClientData({...clientData, localidade: v})} 
+                          icon={<Box size={14} />} 
+                          placeholder="Rúa, número e localidade (EXACTA)..."
+                        />
+                      </div>
+  
+                      <GlobalInput 
+                        label="Técnico" 
+                        value={clientData.responsable} 
+                        onChange={v => setClientData({...clientData, responsable: v})} 
+                        icon={<User size={14} />} 
+                      />
+                       <GlobalInput 
+                        label="Data" 
+                        type="date"
+                        value={clientData.data} 
+                        onChange={v => setClientData({...clientData, data: v})} 
+                        icon={<ClipboardList size={14} />} 
+                      />
+  
+                      <div className="flex items-end">
+                        <button 
+                          disabled={!isClientDataComplete}
+                          onClick={() => {
+                            setIsClientDataCollapsed(true);
+                            scrollToElement('client-section');
+                          }}
+                          className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]
+                            ${isClientDataComplete 
+                              ? 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700' 
+                              : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'}`}
+                        >
+                          CONFIRMAR DATOS
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </section>
+
+  
+              {/* Lista de Toldos */}
+              <div className="space-y-12">
+                {toldos.map((toldo, index) => (
+                  <div key={toldo.id} className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-xl shadow-slate-200/40 relative">
+                    <div className="flex justify-between items-center mb-10">
+                      <div className="flex items-center gap-4">
+                        <span className="bg-blue-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black">
+                          {index + 1}
+                        </span>
+                        <h3 className="text-xl font-black text-slate-900">Toldo {index + 1}</h3>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {toldos.length > 1 && (
+                          <button onClick={() => removeToldo(toldo.id)} className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                            <Trash2 size={20} />
+                          </button>
                         )}
                       </div>
                     </div>
-                    <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isModelCollapsed ? '' : 'rotate-180'}`} />
-                  </div>
-
-                  {!toldo.isModelCollapsed && (
-                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative pb-10">
-                      <div className="space-y-5">
-                        <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
-                        <div className="grid grid-cols-2 gap-4">
-                          <Select label="Cofre" value={toldo.cofre} options={catalog.cofre} onChange={v => updateToldo(toldo.id, { cofre: v })} />
-                          <Select label="Guía compensadora" value={toldo.guia} options={catalog.guiaCompensadora} onChange={v => updateToldo(toldo.id, { guia: v })} />
+  
+                    <div className="space-y-4 mt-6">
+                      {/* ACORDEÓN 1: MODELO E CONFIGURACIÓN */}
+                      <div id={`toldo-${toldo.id}-model`} className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isModelCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
+                        <div 
+                          onClick={() => updateToldo(toldo.id, { isModelCollapsed: !toldo.isModelCollapsed })}
+                          className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-xl text-blue-600 ${toldo.isModelCollapsed ? 'bg-slate-100' : 'bg-blue-50'}`}>
+                              <Box size={18} />
+                            </div>
+                            <div className="text-left">
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Modelo e Configuración</h4>
+                              {toldo.isModelCollapsed && (
+                                <p className="text-[10px] font-bold text-slate-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="text-blue-600 font-extrabold uppercase">{toldo.modelo || 'Sen modelo'}</span>
+                                  <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                  <span className="text-slate-600">Conf: {toldo.cofre || 'Non'} · {toldo.mecanismo || 'Manual'}</span>
+                                  {toldo.swbs === 'Si' && (
+                                    <>
+                                      <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                      <span className="text-indigo-600 font-black">SWBS</span>
+                                    </>
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isModelCollapsed ? '' : 'rotate-180'}`} />
                         </div>
+  
+                        {!toldo.isModelCollapsed && (
+                          <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative pb-10">
+                            <div className="space-y-5">
+                              <Select label="Modelo" value={toldo.modelo} options={catalog.modelos} onChange={v => updateToldo(toldo.id, { modelo: v })} />
+                              <div className="grid grid-cols-2 gap-4">
+                                <Select label="Cofre" value={toldo.cofre} options={catalog.cofre} onChange={v => updateToldo(toldo.id, { cofre: v })} />
+                                <Select label="Guía compensadora" value={toldo.guia} options={catalog.guiaCompensadora} onChange={v => updateToldo(toldo.id, { guia: v })} />
+                              </div>
+                            </div>
+                            <div className="space-y-5">
+                              <Select label="Mecanismo" value={toldo.mecanismo} options={catalog.mecanismo} onChange={v => updateToldo(toldo.id, { mecanismo: v })} />
+                              <div className="grid grid-cols-2 gap-4">
+                                <Select label="SWBS" value={toldo.swbs} options={['Si', 'Non']} onChange={v => updateToldo(toldo.id, { swbs: v })} />
+                                <Select label="Entre paredes" value={toldo.entreParedes} options={catalog.entreParedes} onChange={v => updateToldo(toldo.id, { entreParedes: v })} />
+                              </div>
+                            </div>
+                            
+                            <div className="md:col-span-2 flex justify-end px-2">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateToldo(toldo.id, { isModelCollapsed: true });
+                                  scrollToElement(`toldo-${toldo.id}-model`);
+                                }}
+                                className="bg-blue-50 text-blue-600 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                              >
+                                Confirmar Configuración
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="space-y-5">
-                        <Select label="Mecanismo" value={toldo.mecanismo} options={catalog.mecanismo} onChange={v => updateToldo(toldo.id, { mecanismo: v })} />
-                        <div className="grid grid-cols-2 gap-4">
-                          <Select label="SWBS" value={toldo.swbs} options={['Si', 'Non']} onChange={v => updateToldo(toldo.id, { swbs: v })} />
-                          <Select label="Entre paredes" value={toldo.entreParedes} options={catalog.entreParedes} onChange={v => updateToldo(toldo.id, { entreParedes: v })} />
+  
+                      {/* ACORDEÓN 2: MATERIAIS */}
+                      <div id={`toldo-${toldo.id}-material`} className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isMaterialCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
+                        <div 
+                          onClick={() => updateToldo(toldo.id, { isMaterialCollapsed: !toldo.isMaterialCollapsed })}
+                          className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-xl text-amber-600 ${toldo.isMaterialCollapsed ? 'bg-slate-100' : 'bg-amber-50'}`}>
+                              <Palette size={18} />
+                            </div>
+                            <div className="text-left">
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Materiais</h4>
+                              {toldo.isMaterialCollapsed && (
+                                <p className="text-[10px] font-bold text-slate-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="text-amber-600 font-extrabold uppercase truncate max-w-[150px]">{toldo.tela || 'Sen lona'}</span>
+                                  <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                  <span className="text-slate-600">{toldo.lacado || 'Sen lacado'}</span>
+                                  {toldo.cristal === 'Si' && (
+                                    <>
+                                      <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                      <span className="text-blue-500 font-black">CRISTAL</span>
+                                    </>
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isMaterialCollapsed ? '' : 'rotate-180'}`} />
                         </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ACORDEÓN 2: MATERIAIS */}
-                <div className={`border border-slate-200 rounded-3xl transition-all duration-300 ${toldo.isMaterialCollapsed ? 'bg-slate-50/50' : 'bg-white shadow-sm ring-1 ring-slate-200/60 p-1'}`}>
-                  <div 
-                    onClick={() => updateToldo(toldo.id, { isMaterialCollapsed: !toldo.isMaterialCollapsed })}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-xl text-amber-600 ${toldo.isMaterialCollapsed ? 'bg-slate-100' : 'bg-amber-50'}`}>
-                        <Palette size={18} />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Materiais</h4>
-                        {toldo.isMaterialCollapsed && (
-                          <p className="text-xs font-bold text-slate-600 truncate max-w-[200px]">
-                            {toldo.tela || 'Sen lona'} · {toldo.lacado || 'Sen lacado'}
-                          </p>
+  
+                        {!toldo.isMaterialCollapsed && (
+                          <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative pb-10">
+                            <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
+                            <div className="grid grid-cols-2 gap-4">
+                              <Select label="Cristal" value={toldo.cristal} options={['Non', 'Si']} onChange={v => updateToldo(toldo.id, { cristal: v })} />
+                              <Select label="Lacado (estrutura)" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
+                            </div>
+  
+                            <div className="md:col-span-2 flex justify-end px-2">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateToldo(toldo.id, { isMaterialCollapsed: true });
+                                  scrollToElement(`toldo-${toldo.id}-material`);
+                                }}
+                                className="bg-amber-50 text-amber-600 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+                              >
+                                Confirmar Materiais
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
-                    <ChevronDown size={18} className={`text-slate-300 transition-transform duration-500 ${toldo.isMaterialCollapsed ? '' : 'rotate-180'}`} />
+  
+                    <MeasurementBlock 
+                      measurements={toldo.measurements} 
+                      onUpdate={m => updateToldo(toldo.id, { measurements: m })} 
+                      result={toldo.result}
+                    />
                   </div>
+                ))}
+              </div>
+  
+              <button onClick={addToldo} className="w-full py-6 border-2 border-dashed border-slate-300 rounded-[2.5rem] text-slate-400 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-3 font-black uppercase text-xs tracking-widest">
+                <Plus size={20} /> Engadir outro toldo
+              </button>
 
-                  {!toldo.isMaterialCollapsed && (
-                    <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 relative pb-10">
-                      <Select label="Tea / Lona" value={toldo.tela} options={catalog.telas} onChange={v => updateToldo(toldo.id, { tela: v })} search />
-                      <div className="grid grid-cols-2 gap-4">
-                        <Select label="Cristal" value={toldo.cristal} options={['Non', 'Si']} onChange={v => updateToldo(toldo.id, { cristal: v })} />
-                        <Select label="Lacado (estrutura)" value={toldo.lacado} options={catalog.lacados} onChange={v => updateToldo(toldo.id, { lacado: v })} />
+              {/* SECCIÓN COMENTARIOS E IMÁXES (AO FINAL) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* BLOQUE COMENTARIOS */}
+                 <section className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 p-6 flex flex-col">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 bg-amber-50 rounded-2xl text-amber-600">
+                        <ClipboardList size={20} />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Anotacións</h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Observacións do técnico</p>
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
+                    <textarea 
+                      value={clientData.comentarios}
+                      onChange={e => setClientData({...clientData, comentarios: e.target.value})}
+                      placeholder="Escribe aquí calquera detalle importante para produción ou montaxe..."
+                      className="flex-1 w-full min-h-[120px] bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all resize-none"
+                    />
+                 </section>
 
-              <MeasurementBlock 
-                measurements={toldo.measurements} 
-                onUpdate={m => updateToldo(toldo.id, { measurements: m })} 
-                result={toldo.result}
-              />
+                 {/* BLOQUE IMÁXES */}
+                 <section className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-200/60 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-blue-50 rounded-2xl text-blue-600">
+                          <Box size={20} />
+                        </div>
+                        <div>
+                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Imaxes</h2>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Fotos da obra</p>
+                        </div>
+                      </div>
+                      <label className="cursor-pointer bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm">
+                        <Plus size={14} className="inline mr-2" /> Engadir Foto
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+                      </label>
+                    </div>
+
+                    {currentImaxes.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in zoom-in-95 duration-500">
+                        {currentImaxes.map((img, idx) => (
+                          <div key={idx} className="relative aspect-square group">
+                            <img src={img} className="w-full h-full object-cover rounded-xl border border-slate-100" alt={`Obra ${idx}`} />
+                            <button 
+                              onClick={() => removeImage(idx)}
+                              className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-slate-50 rounded-2xl p-8 flex flex-col items-center text-center justify-center h-[120px]">
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sen fotos</p>
+                      </div>
+                    )}
+                 </section>
+              </div>
             </div>
-          ))}
-        </div>
-
-        <button onClick={addToldo} className="w-full py-6 border-2 border-dashed border-slate-300 rounded-[2.5rem] text-slate-400 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-3 font-black uppercase text-xs tracking-widest">
-          <Plus size={20} /> Engadir outro toldo
-        </button>
+  
+            <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 z-[900]">
+              <div className="max-w-4xl mx-auto">
+                <button 
+                  disabled={!canSaveOrder}
+                  onClick={handleSavePedido}
+                  className={`w-full py-5 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-xl
+                    ${!canSaveOrder 
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50' 
+                      : 'bg-blue-600 text-white shadow-blue-500/20 active:scale-95'}`}
+                >
+                  {!isClientDataComplete ? 'COMPLETA DATOS DO CLIENTE' : 
+                   !isToldosConfigComplete ? 'COMPLETA MATERIALES E CONFIG.' :
+                   isOrderEmpty ? 'ENGADE RESULTADOS DE MEDICIÓN' :
+                   isOrderBlocked ? 'REVISA ERROS DE MEDICIÓN' :
+                   (editingPedidoId ? 'ACTUALIZAR PEDIDO' : 'GARDAR PEDIDO COMPLETO')}
+                  <ChevronRight size={20} strokeWidth={3} />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </main>
-
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 z-[900]">
-        <div className="max-w-4xl mx-auto">
-          <button 
-            disabled={isOrderBlocked || isOrderEmpty || !isClientDataComplete}
-            className={`w-full py-5 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-xl
-              ${(isOrderBlocked || isOrderEmpty || !isClientDataComplete) 
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50' 
-                : 'bg-blue-600 text-white shadow-blue-500/20 active:scale-95'}`}
-          >
-            {isClientDataComplete ? 'GARDAR PEDIDO COMPLETO' : 'COMPLETA DATOS DO CLIENTE'}
-            <ChevronRight size={20} strokeWidth={3} />
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
@@ -431,18 +1094,18 @@ function Select({ label, value, options, onChange, search = false }: { label: st
   )
 }
 
-function GlobalInput({ label, value, onChange, icon, type = 'text' }: { label: string, value: string, onChange: (v: string) => void, icon: React.ReactNode, type?: string }) {
+function GlobalInput({ label, value, onChange, icon, placeholder, type = 'text' }: { label: string, value: string, onChange: (v: string) => void, icon?: React.ReactNode, placeholder?: string, type?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 flex-1">
-      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest flex items-center gap-2 pl-1">
+    <div className="flex flex-col gap-1.5 flex-1 relative">
+      <label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1 flex items-center gap-2">
         {icon} {label}
       </label>
       <input 
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
-        placeholder={`Introduza ${label.toLowerCase()}...`}
+        placeholder={placeholder || `Introduza o ${label.toLowerCase()}...`}
+        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all"
       />
     </div>
   )
@@ -466,13 +1129,13 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
   }
 
   return (
-    <div className="space-y-6 mt-12 bg-white shadow-sm ring-1 ring-slate-200/60 p-6 rounded-[2.5rem]">
-      <div className="flex items-center justify-between px-2">
-        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-          <Ruler size={14} className="text-blue-600" /> Toma de Medidas (cm)
+    <div className="space-y-4 mt-6 bg-white shadow-sm ring-1 ring-slate-200/60 p-4 rounded-[2rem]">
+      <div className="flex items-center justify-between px-1">
+        <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+          <Ruler size={12} className="text-blue-600" /> Toma de Medidas (cm)
         </h4>
         {result && (
-          <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest ${getStatusClasses()}`}>
+          <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${getStatusClasses()}`}>
             {result.status}
           </span>
         )}
@@ -525,7 +1188,7 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
         </svg>
       </div>
 
-      <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+      <div className="grid grid-cols-2 gap-y-4 gap-x-3">
         <NumInput label="Frente Superior" value={measurements.fSup} onChange={v => handleNumInput('fSup', v)} icon="fS" />
         <NumInput label="Frente Inferior" value={measurements.fInf} onChange={v => handleNumInput('fInf', v)} icon="fI" />
         <NumInput label="Saída Esquerda" value={measurements.sIzq} onChange={v => handleNumInput('sIzq', v)} icon="sE" />
@@ -535,47 +1198,34 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
       </div>
 
       {result && (
-        <div className={`p-6 rounded-3xl border-2 transition-all animate-in zoom-in-95 duration-500 ${getStatusClasses()}`}>
-          <div className="flex items-center gap-4 mb-4">
-            <div className={`p-3 rounded-2xl bg-white shadow-sm border border-current`}>
-              {result.status === 'VERMELLO' || result.status === 'ERROR' ? <XCircle size={28} /> : <CheckCircle size={28} />}
+        <div className={`p-4 rounded-[1.5rem] border-2 transition-all animate-in zoom-in-95 duration-500 ${getStatusClasses()}`}>
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`p-2 rounded-xl bg-white shadow-sm border border-current`}>
+              {result.status === 'VERMELLO' || result.status === 'ERROR' ? <XCircle size={18} /> : <CheckCircle size={18} />}
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5">Diagnóstico Técnico</p>
-              <h5 className="text-lg font-black leading-tight">{result.status}</h5>
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-60">Diagnóstico</p>
+              <h5 className="text-sm font-black leading-tight">{result.status}</h5>
             </div>
           </div>
-          <p className="text-sm font-bold leading-relaxed mb-6 opacity-90">{result.message}</p>
+          <p className="text-[11px] font-bold leading-tight mb-3 opacity-90">{result.message}</p>
           
-          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-current/10">
-            <div className="bg-white/40 p-3 rounded-2xl border border-current/10">
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Desfase Esq.</p>
-              <p className="text-xl font-black">{result.details.offsetL.toFixed(1)}<span className="text-xs ml-0.5">cm</span></p>
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-current/10">
+            <div className="bg-white/40 p-2 rounded-xl border border-current/10 text-center">
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-0.5">D.Esq</p>
+              <p className="text-base font-black">{result.details.offsetL.toFixed(1)}<span className="text-[10px] ml-0.5">cm</span></p>
             </div>
-            <div className="bg-white/40 p-3 rounded-2xl border border-current/10">
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Desfase Der.</p>
-              <p className="text-xl font-black">{result.details.offsetR.toFixed(1)}<span className="text-xs ml-0.5">cm</span></p>
+            <div className="bg-white/40 p-2 rounded-xl border border-current/10 text-center">
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-0.5">D.Der</p>
+              <p className="text-base font-black">{result.details.offsetR.toFixed(1)}<span className="text-[10px] ml-0.5">cm</span></p>
             </div>
           </div>
 
-          {/* Lóxica de Cálculo (Transparencia) */}
-          <div className="mt-6 pt-4 border-t border-current/10">
-            <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-3 flex items-center gap-2">
-              <ArrowRightLeft size={10} /> Transparencia Matemática
-            </p>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-[10px] font-bold">
-                <span className="opacity-70">Esquerda (Real vs Ideal):</span>
-                <span>{measurements.diag1}cm / <span className="opacity-50">{result.details.theoDiagL.toFixed(1)}cm</span></span>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-bold">
-                <span className="opacity-70">Dereita (Real vs Ideal):</span>
-                <span>{measurements.diag2}cm / <span className="opacity-50">{result.details.theoDiagR.toFixed(1)}cm</span></span>
-              </div>
+          <div className="mt-3 pt-2 border-t border-current/10">
+            <div className="flex justify-between items-center text-[9px] font-bold opacity-60">
+              <span className="flex items-center gap-1"><ArrowRightLeft size={8} /> Diagonais:</span>
+              <span>{measurements.diag1}/{measurements.diag2}</span>
             </div>
-            <p className="text-[8px] mt-4 italic opacity-50 leading-tight">
-              * O sistema iris tolera un desfase máximo de 1.0cm entre a medida real e a perpendicular ideal calculada por Pitágoras.
-            </p>
           </div>
         </div>
       )}
@@ -585,10 +1235,10 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
 
 function NumInput({ label, value, onChange, color = 'blue', icon }: { label: string, value: number, onChange: (v: string) => void, color?: 'blue' | 'amber', icon: string }) {
   return (
-    <div className="flex flex-col gap-2 relative group">
-      <label className="text-[9px] uppercase font-black text-slate-400 tracking-widest pl-1">{label}</label>
+    <div className="flex flex-col gap-1 relative group">
+      <label className="text-[8px] uppercase font-black text-slate-400 tracking-widest pl-1 truncate">{label}</label>
       <div className="relative">
-        <div className={`absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-tighter w-7 h-7 flex items-center justify-center rounded-lg border transition-all
+        <div className={`absolute left-3 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase tracking-tighter w-6 h-6 flex items-center justify-center rounded-lg border transition-all
           ${color === 'blue' ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
           {icon}
         </div>
@@ -598,7 +1248,7 @@ function NumInput({ label, value, onChange, color = 'blue', icon }: { label: str
           value={value === 0 ? '' : value} 
           onChange={e => onChange(e.target.value)} 
           placeholder="0.0"
-          className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-14 pr-4 py-4 text-base font-black focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-200"
+          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-3 py-3 text-sm font-black focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-200"
         />
       </div>
     </div>
