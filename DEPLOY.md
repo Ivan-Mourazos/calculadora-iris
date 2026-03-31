@@ -1,43 +1,41 @@
 # Guía de Despliegue para IT - Calculadora Iris
 
-## Pasos para el Despliegue
-
-Sigue estos comandos en la terminal desde la raíz del proyecto:
+## Proceso de Despliegue
+Executa estes comandos dende a raíz do proxecto para xerar e servir a versión de produción:
 
 1.  **Instalar dependencias**:
-    ```bash
+    ```
     npm install
     ```
 
-2.  **Compilar para Producción**:
-    Genera una carpeta `dist/` con el código optimizado.
-    ```bash
+2.  **Compilar para Produción**:
+    ```
     npm run build
     ```
 
-3.  **Servir la Aplicación**:
-    Utiliza el comando ya configurado para levantar el servidor estático con soporte para Single Page Application (SPA).
-    ```bash
+3.  **Servir en Produción**:
+    Utiliza o servidor estático configurado para Single Page Applications (SPA).
+    ```
     npm run serve:prod
     ```
 
-## Notas Técnicas para IT
+## Notas Técnicas para o Servidor
 
-### Cambiar el Puerto
-Por defecto, la aplicación se servirá en el puerto **3000** (o el siguiente disponible). Si necesitas especificar un puerto concreto, puedes usar:
-```bash
+### Cambio de Porto
+Se necesitas cambiar o porto (por defecto 3000), edita o comando en `package.json` ou lánzao manualmente:
+```
 npx serve -l 8080 -s dist
 ```
 
-### Configuración del Servidor (Nginx/Apache)
-Si prefieres usar un servidor web dedicado como Nginx o Apache, simplemente debes configurar el servidor para que apunte al directorio `dist/` y redirigir todas las peticiones internas al archivo `index.html`.
+### Configuración de Apache / Nginx
+Para un rendemento óptimo detrás dun servidor web, apunta á carpeta `dist/` e asegura a redirección ao `index.html` para que o enrutamento SPA funcione correctamente.
 
-Ejemplo de configuración básica para **Nginx**:
+**Exemplo Nginx:**
 ```nginx
 server {
     listen 80;
-    server_name tu-dominio.com;
-    root /ruta/al/proyecto/dist;
+    server_name calculadora.toldosgomez.com;
+    root /var/www/calculadora-iris/dist;
     index index.html;
 
     location / {
@@ -45,3 +43,6 @@ server {
     }
 }
 ```
+
+## Persistencia de Datos
+A aplicación utiliza **LocalStorage** (`tgm_calculos`). Se se realiza unha limpeza de caché agresiva ou se o usuario cambia de navegador, os datos non se sincronizarán. No futuro, recoméndase vincular cunha base de datos central.
