@@ -18,29 +18,21 @@ interface Toldo {
   result: ValidationResult | null;
   isMaterialCollapsed?: boolean;
   isModelCollapsed?: boolean;
-  of?: string; // Orde de Fabricación (para produción)
 }
 
-interface Pedido {
+interface Calculo {
   id: string;
   cliente: string;
   localidade: string;
   responsable: string;
   data: string;
-  estado: 'PENDENTE' | 'PRODUCION' | 'OFICINA_TECNICA' | 'MONTAXE';
-  numeroPedido?: string; // Número de pedido (para produción)
   toldos: Toldo[];
   imaxes?: string[]; // Array de imaxes en Base64
   comentarios?: string;
-  datasEstados?: {
-    PENDENTE?: string;
-    PRODUCION?: string;
-    OFICINA_TECNICA?: string;
-    MONTAXE?: string;
-  };
 }
 
 function App() {
+  const generateId = () => Math.random().toString(36).substring(2, 11);
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isClientDataCollapsed, setIsClientDataCollapsed] = useState(false)
@@ -67,35 +59,27 @@ function App() {
     }, 150);
   };
 
-  const [pedidos, setPedidos] = useState<Pedido[]>(() => {
-    const saved = localStorage.getItem('tgm_pedidos');
+  const [calculos, setCalculos] = useState<Calculo[]>(() => {
+    const saved = localStorage.getItem('tgm_calculos');
     return saved ? JSON.parse(saved) : [];
   });
   
   const [currentView, setCurrentView] = useState<'form' | 'list' | 'detail'>('form');
-  const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
-  const [editingPedidoId, setEditingPedidoId] = useState<string | null>(null);
+  const [selectedCalculo, setSelectedCalculo] = useState<Calculo | null>(null);
+  const [editingCalculoId, setEditingCalculoId] = useState<string | null>(null);
   const [currentImaxes, setCurrentImaxes] = useState<string[]>([]);
 
-  // Sync pedidos con localStorage
-  const saveToLocalStorage = (newPedidos: Pedido[]) => {
-    localStorage.setItem('tgm_pedidos', JSON.stringify(newPedidos));
+  // Sync calculos con localStorage
+  const saveToLocalStorage = (newCalculos: Calculo[]) => {
+    localStorage.setItem('tgm_calculos', JSON.stringify(newCalculos));
   };
 
   const [toldos, setToldos] = useState<Toldo[]>([
     {
-      id: crypto.randomUUID(),
-      modelo: '',
-      cofre: '',
-      guia: '',
-      mecanismo: '',
-      swbs: 'Non',
-      entreParedes: '',
-      tela: '',
-      cristal: 'Non',
-      lacado: '',
-      measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 },
-      result: null
+      id: generateId(),
+      modelo: '', cofre: '', guia: '', mecanismo: '', swbs: 'Non', entreParedes: '', tela: '', cristal: 'Non', lacado: '',
+      measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null,
+      isModelCollapsed: true, isMaterialCollapsed: true
     }
   ])
 
@@ -103,18 +87,10 @@ function App() {
     setToldos(prev => [
       ...prev,
       {
-        id: crypto.randomUUID(),
-        modelo: '',
-        cofre: '',
-        guia: '',
-        mecanismo: '',
-        swbs: 'Non',
-        entreParedes: '',
-        tela: '',
-        cristal: 'Non',
-        lacado: '',
-        measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 },
-        result: null
+        id: generateId(),
+        modelo: '', cofre: '', guia: '', mecanismo: '', swbs: 'Non', entreParedes: '', tela: '', cristal: 'Non', lacado: '',
+        measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null,
+        isModelCollapsed: true, isMaterialCollapsed: true
       }
     ])
     // Ao engadir un toldo, se os datos do cliente están listos, colapsamos para dar espazo
@@ -154,30 +130,26 @@ function App() {
   const isOrderEmpty = toldos.some(t => !t.result)
   const canSaveOrder = isClientDataComplete && isToldosConfigComplete && !isOrderBlocked && !isOrderEmpty;
 
-  const handleSavePedido = () => {
+  const handleSaveCalculo = () => {
     if (!canSaveOrder) return;
 
-    const newPedido: Pedido = {
-      id: editingPedidoId || crypto.randomUUID(),
+    const newCalculo: Calculo = {
+      id: editingCalculoId || generateId(),
       cliente: clientData.cliente,
       localidade: clientData.localidade,
       responsable: clientData.responsable,
       data: clientData.data,
-      estado: 'PENDENTE',
       toldos: toldos,
       imaxes: currentImaxes,
-      comentarios: clientData.comentarios,
-      datasEstados: editingPedidoId 
-        ? pedidos.find(p => p.id === editingPedidoId)?.datasEstados 
-        : { PENDENTE: new Date().toISOString() }
+      comentarios: clientData.comentarios
     };
 
-    setPedidos(prev => {
+    setCalculos(prev => {
       let updated;
-      if (editingPedidoId) {
-        updated = prev.map(p => p.id === editingPedidoId ? newPedido : p);
+      if (editingCalculoId) {
+        updated = prev.map(p => p.id === editingCalculoId ? newCalculo : p);
       } else {
-        updated = [newPedido, ...prev];
+        updated = [newCalculo, ...prev];
       }
       saveToLocalStorage(updated);
       return updated;
@@ -185,30 +157,31 @@ function App() {
 
     // Resetear formulario
     setToldos([{
-      id: crypto.randomUUID(),
+      id: generateId(),
       modelo: '', cofre: '', guia: '', mecanismo: '', swbs: 'Non', entreParedes: '', tela: '', cristal: 'Non', lacado: '',
-      measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null
+      measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null,
+      isModelCollapsed: true, isMaterialCollapsed: true
     }]);
     setClientData(prev => ({ ...prev, cliente: '', localidade: '', comentarios: '' }));
     setIsClientDataCollapsed(false);
-    setEditingPedidoId(null);
+    setEditingCalculoId(null);
     setCurrentImaxes([]);
     setCurrentView('list');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const loadPedidoForEditing = (pedido: Pedido) => {
+  const loadCalculoForEditing = (calculo: Calculo) => {
     setClientData({
-      cliente: pedido.cliente,
-      localidade: pedido.localidade,
-      responsable: pedido.responsable,
-      comentarios: pedido.comentarios || '',
-      data: pedido.data
+      cliente: calculo.cliente,
+      localidade: calculo.localidade,
+      responsable: calculo.responsable,
+      comentarios: calculo.comentarios || '',
+      data: calculo.data
     });
-    setToldos(pedido.toldos);
-    setEditingPedidoId(pedido.id);
+    setToldos(calculo.toldos);
+    setEditingCalculoId(calculo.id);
     setIsClientDataCollapsed(true);
-    setCurrentImaxes(pedido.imaxes || []);
+    setCurrentImaxes(calculo.imaxes || []);
     setCurrentView('form');
   };
 
@@ -256,56 +229,20 @@ function App() {
     setCurrentImaxes(prev => prev.filter((_, i) => i !== index));
   };
 
-  const deletePedido = (id: string) => {
-    if (window.confirm('¿Seguro que queres eliminar este pedido? Esta acción non se pode desfacer.')) {
-      setPedidos(prev => {
+  const deleteCalculo = (id: string) => {
+    if (window.confirm('¿Seguro que queres eliminar este cálculo? Esta acción non se pode desfacer.')) {
+      setCalculos(prev => {
         const updated = prev.filter(p => p.id !== id);
         saveToLocalStorage(updated);
         return updated;
       });
-      if (selectedPedido?.id === id) {
+      if (selectedCalculo?.id === id) {
         setCurrentView('list');
-        setSelectedPedido(null);
+        setSelectedCalculo(null);
       }
     }
   };
 
-  const simulateProcessing = (id: string, status: Pedido['estado']) => {
-    setPedidos(prev => {
-      const updated = prev.map(p => {
-        if (p.id === id) {
-          const newStatus = status;
-          const updates: Partial<Pedido> = { 
-            estado: newStatus,
-            datasEstados: {
-              ...(p.datasEstados || {}),
-              [newStatus]: new Date().toISOString()
-            }
-          };
-          
-          return { ...p, ...updates };
-        }
-        return p;
-      });
-      saveToLocalStorage(updated);
-      return updated;
-    });
-    if (selectedPedido?.id === id) {
-       setSelectedPedido(prev => {
-         if (!prev) return null;
-         const now = new Date().toISOString();
-         const updated = { 
-           ...prev, 
-           estado: status,
-           datasEstados: {
-             ...(prev.datasEstados || {}),
-             [status]: now
-           }
-         };
-         return updated as Pedido;
-       });
-    }
-  };
 
   const formatDate = (dateValue: string) => {
     if (!dateValue) return '';
@@ -376,7 +313,7 @@ function App() {
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sesión técnica</p>
                     <p className="text-[11px] font-bold text-slate-900 truncate">{clientData.responsable}</p>
                   </div>
-                  <button 
+                    <button 
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       setCurrentView('list');
@@ -384,15 +321,16 @@ function App() {
                     className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors border-b border-slate-50"
                   >
                     <ClipboardList size={16} className="text-blue-500" />
-                    Os meus pedidos
+                    Cálculos gardados
                   </button>
                   <button 
                     onClick={() => {
-                      setEditingPedidoId(null);
+                      setEditingCalculoId(null);
                       setToldos([{
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         modelo: '', cofre: '', guia: '', mecanismo: '', swbs: 'Non', entreParedes: '', tela: '', cristal: 'Non', lacado: '',
-                        measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null
+                        measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null,
+                        isModelCollapsed: true, isMaterialCollapsed: true
                       }]);
                       setClientData(prev => ({ ...prev, cliente: '', localidade: '' }));
                       setIsClientDataCollapsed(false);
@@ -402,7 +340,7 @@ function App() {
                     className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors border-b border-slate-50"
                   >
                     <Plus size={16} className="text-emerald-500" />
-                    Novo pedido
+                    Novo cálculo
                   </button>
                   <button 
                     onClick={() => {
@@ -427,57 +365,51 @@ function App() {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Os meus Pedidos</h2>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Histórico de medicións</p>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Cálculos Gardados</h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Histórico de medicións e oportunidades</p>
               </div>
               <button 
-                onClick={() => setCurrentView('form')}
+                onClick={() => {
+                  setEditingCalculoId(null);
+                  setToldos([{
+                    id: generateId(),
+                    modelo: '', cofre: '', guia: '', mecanismo: '', swbs: 'Non', entreParedes: '', tela: '', cristal: 'Non', lacado: '',
+                    measurements: { fSup: 0, fInf: 0, sIzq: 0, sDer: 0, diag1: 0, diag2: 0 }, result: null
+                  }]);
+                  setClientData(prev => ({ ...prev, cliente: '', localidade: '', comentarios: '' }));
+                  setIsClientDataCollapsed(false);
+                  setCurrentView('form');
+                }}
                 className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all flex items-center gap-2"
               >
                 <Plus size={16} /> Novo Cálculo
               </button>
             </div>
 
-            {pedidos.length === 0 ? (
+            {calculos.length === 0 ? (
               <div className="bg-white rounded-[2.5rem] p-20 border-2 border-dashed border-slate-200 flex flex-col items-center text-center">
                 <div className="p-6 bg-slate-50 rounded-full text-slate-300 mb-6">
                   <ClipboardList size={48} />
                 </div>
-                <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Aínda non hai pedidos</h3>
+                <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Aínda non hai cálculos</h3>
                 <p className="text-sm text-slate-300 font-bold mt-2">Os teus cálculos aparecerán aquí despois de gardalos.</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {pedidos.map(pedido => (
-                  <div key={pedido.id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-6 group">
+                {calculos.map(calculo => (
+                  <div key={calculo.id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-6 group">
                     <div className="flex items-center gap-5 flex-1 min-w-0">
-                      <div className={`p-3 rounded-2xl shrink-0 ${
-                        pedido.estado === 'PENDENTE' ? 'bg-amber-50 text-amber-500' :
-                        pedido.estado === 'PRODUCION' ? 'bg-blue-50 text-blue-500' :
-                        pedido.estado === 'OFICINA_TECNICA' ? 'bg-purple-50 text-purple-500' :
-                        'bg-emerald-50 text-emerald-500'
-                      }`}>
-                        {pedido.estado === 'PENDENTE' ? <AlertTriangle size={24} /> : <CheckCircle size={24} />}
+                      <div className="p-3 rounded-2xl shrink-0 bg-blue-50 text-blue-500">
+                        <User size={24} />
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-col gap-1 mb-1">
-                          <h4 className="font-black text-slate-900 uppercase tracking-tight leading-tight">{pedido.cliente}</h4>
-                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
-                              pedido.estado === 'PENDENTE' ? 'bg-amber-100 text-amber-700' :
-                              pedido.estado === 'PRODUCION' ? 'bg-blue-100 text-blue-700' :
-                              pedido.estado === 'OFICINA_TECNICA' ? 'bg-purple-100 text-purple-700' :
-                              'bg-emerald-100 text-emerald-700'
-                            }`}>
-                              {pedido.estado.replace('_', ' ')}
-                            </span>
-                            {pedido.numeroPedido && <span className="text-[8px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">ID: {pedido.numeroPedido}</span>}
-                          </div>
+                          <h4 className="font-black text-slate-900 uppercase tracking-tight leading-tight">{calculo.cliente}</h4>
                         </div>
                         <div className="flex flex-wrap items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
-                          <span className="flex items-center gap-1.5"><ClipboardList size={12} className="text-slate-300" /> {formatDate(pedido.data)}</span>
-                          <span className="flex items-center gap-1.5"><Box size={12} className="text-slate-300" /> {pedido.toldos.length} Toldos</span>
-                          <span className="flex items-center gap-1.5"><User size={12} className="text-slate-300" /> {pedido.responsable}</span>
+                          <span className="flex items-center gap-1.5"><ClipboardList size={12} className="text-slate-300" /> {formatDate(calculo.data)}</span>
+                          <span className="flex items-center gap-1.5"><Box size={12} className="text-slate-300" /> {calculo.toldos.length} {calculo.toldos.length === 1 ? 'Toldo' : 'Toldos'}</span>
+                          <span className="flex items-center gap-1.5"><User size={12} className="text-slate-300" /> {calculo.responsable}</span>
                         </div>
                       </div>
                     </div>
@@ -485,158 +417,139 @@ function App() {
                     <div className="flex items-center gap-2">
                        <button 
                         onClick={() => {
-                          setSelectedPedido(pedido);
+                          setSelectedCalculo(calculo);
                           setCurrentView('detail');
                         }}
-                        className="bg-slate-50 text-slate-500 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
+                        className="bg-slate-100 text-slate-600 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm"
                       >
                         Ver Detalle
                       </button>
-                      {pedido.estado === 'PENDENTE' && (
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => loadPedidoForEditing(pedido)}
-                            className="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                          >
-                            Editar
-                          </button>
-                          <button 
-                            onClick={() => deletePedido(pedido.id)}
-                            className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                            title="Eliminar pedido"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      )}
+                      <button 
+                        onClick={() => loadCalculoForEditing(calculo)}
+                        className="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                      >
+                        Editar
+                      </button>
+                      <button 
+                        onClick={() => deleteCalculo(calculo.id)}
+                        className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        ) : currentView === 'detail' && selectedPedido ? (
+        ) : currentView === 'detail' && selectedCalculo ? (
            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex items-center justify-between">
                 <div>
                   <button onClick={() => setCurrentView('list')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1 mb-2 hover:-translate-x-1 transition-transform">
                     <ArrowRightLeft size={10} /> Volver á lista
                   </button>
-                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Detalles do Pedido</h2>
+                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Detalles do Cálculo</h2>
                 </div>
                 <div className="flex gap-2">
-                  {selectedPedido.estado === 'PENDENTE' && (
-                    <div className="flex items-center gap-3">
-                      <button 
-                        onClick={() => deletePedido(selectedPedido.id)}
-                        className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all mr-2"
-                        title="Eliminar pedido"
-                      >
-                        <Trash2 size={24} />
-                      </button>
-                      <button 
-                        onClick={() => simulateProcessing(selectedPedido.id, 'PRODUCION')}
-                        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200 active:scale-95 transition-all"
-                      >
-                        Pasar a Produción (Simulación)
-                      </button>
-                    </div>
-                  )}
-                  {selectedPedido.estado === 'PRODUCION' && (
-                    <button 
-                      onClick={() => simulateProcessing(selectedPedido.id, 'MONTAXE')}
-                      className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all"
-                    >
-                      Finalizar Montaxe
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => deleteCalculo(selectedCalculo.id)}
+                    className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all mr-2"
+                    title="Eliminar cálculo"
+                  >
+                    <Trash2 size={24} />
+                  </button>
+                  <button 
+                    onClick={() => loadCalculoForEditing(selectedCalculo)}
+                    className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all"
+                  >
+                    Editar Cálculo
+                  </button>
                 </div>
              </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 space-y-6">
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
                   {/* Resumen Cliente */}
                   <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4">
-                       <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
-                          selectedPedido.estado === 'PENDENTE' ? 'bg-amber-100 text-amber-700' :
-                          selectedPedido.estado === 'PRODUCION' ? 'bg-blue-100 text-blue-700' :
-                          selectedPedido.estado === 'OFICINA_TECNICA' ? 'bg-purple-100 text-purple-700' :
-                          'bg-emerald-100 text-emerald-700'
-                        }`}>
-                          {selectedPedido.estado.replace('_', ' ')}
-                        </span>
-                    </div>
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Información da Obra</h3>
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Información do Cálculo</h3>
                     <div className="grid grid-cols-2 gap-y-4">
                       <div>
                         <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Cliente</p>
-                        <p className="text-sm font-black text-slate-800">{selectedPedido.cliente}</p>
+                        <p className="text-sm font-black text-slate-800">{selectedCalculo.cliente}</p>
                       </div>
                       <div>
                         <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Data</p>
-                        <p className="text-sm font-black text-slate-800">{formatDate(selectedPedido.data)}</p>
+                        <p className="text-sm font-black text-slate-800">{formatDate(selectedCalculo.data)}</p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
                           <Box size={10} /> Localidade / Dirección exacta
                         </p>
-                        <p className="text-sm font-bold text-slate-800 leading-tight">{selectedPedido.localidade}</p>
+                        <p className="text-sm font-bold text-slate-800 leading-tight">{selectedCalculo.localidade}</p>
                       </div>
                     </div>
 
-                    {selectedPedido.comentarios && (
+                    {selectedCalculo.comentarios && (
                       <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                          <ClipboardList size={10} /> Anotacións do Técnico
+                          <ClipboardList size={10} /> Anotacións
                         </p>
-                        <p className="text-xs font-medium text-slate-700 whitespace-pre-wrap">{selectedPedido.comentarios}</p>
-                      </div>
-                    )}
-
-                    {selectedPedido.imaxes && selectedPedido.imaxes.length > 0 && (
-                      <div className="mt-8 pt-8 border-t border-slate-100">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Fotos da Obra</h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {selectedPedido.imaxes.map((img, idx) => (
-                            <img key={idx} src={img} className="aspect-square w-full object-cover rounded-2xl border border-slate-100 shadow-sm" alt={`Instalación ${idx}`} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {(selectedPedido.numeroPedido || selectedPedido.estado === 'PRODUCION') && (
-                      <div className={`mt-6 pt-6 border-t border-slate-50 flex justify-between items-center -mx-6 -mb-6 px-6 py-4 ${selectedPedido.numeroPedido ? 'bg-blue-50/30' : 'bg-amber-50/30'}`}>
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${selectedPedido.numeroPedido ? 'text-blue-600' : 'text-amber-600'}`}>Num. Pedido Sistema</p>
-                        <p className={`text-lg font-black tracking-tighter ${selectedPedido.numeroPedido ? 'text-blue-700' : 'text-amber-700 animate-pulse'}`}>
-                          {selectedPedido.numeroPedido || 'PENDENTE DE ASIGNAR'}
-                        </p>
+                        <p className="text-xs font-medium text-slate-700 whitespace-pre-wrap">{selectedCalculo.comentarios}</p>
                       </div>
                     )}
                   </div>
 
                   {/* Lista de Productos */}
                   <div className="space-y-4">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-2">Productos ({selectedPedido.toldos.length})</h3>
-                    {selectedPedido.toldos.map((t, idx) => (
-                      <div key={t.id} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <span className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">{idx + 1}</span>
-                          <div>
-                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{t.modelo || 'Toldo sen modelo'}</p>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.mecanismo || 'Manual'} · {t.tela || 'Lona estándar'}</p>
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-2">Productos ({selectedCalculo.toldos.length})</h3>
+                    {selectedCalculo.toldos.map((t, idx) => (
+                      <div key={t.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <span className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">{idx + 1}</span>
+                            <div>
+                              <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{t.modelo || 'Toldo sen modelo'}</p>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.mecanismo || 'Manual'} · {t.tela || 'Lona estándar'}</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          {(t.of || selectedPedido.estado === 'PRODUCION') ? (
-                             <div className={`${t.of ? 'bg-indigo-50 border-indigo-100' : 'bg-amber-50 border-amber-100'} px-3 py-1.5 rounded-lg border transition-colors`}>
-                               <p className={`text-[8px] font-black ${t.of ? 'text-indigo-400' : 'text-amber-400'} uppercase tracking-tighter leading-none mb-0.5`}>Ref. Fabricación</p>
-                               <p className={`text-[11px] font-black ${t.of ? 'text-indigo-600' : 'text-amber-600 italic'} tracking-tight leading-none`}>
-                                 {t.of || 'Pendente OF'}
-                               </p>
-                             </div>
-                          ) : (
-                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">A espera de envío</p>
+                          {t.result && (
+                            <span className={`text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest ${
+                              t.result.status === 'VERDE' ? 'bg-emerald-100 text-emerald-700' :
+                              t.result.status === 'AMARELO' ? 'bg-amber-100 text-amber-700' :
+                              'bg-rose-100 text-rose-700'
+                            }`}>
+                              {t.result.status}
+                            </span>
                           )}
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Fr. Sup</p>
+                            <p className="text-xs font-black text-slate-900">{t.measurements.fSup}cm</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Fr. Inf</p>
+                            <p className="text-xs font-black text-slate-900">{t.measurements.fInf}cm</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">S. Izq</p>
+                            <p className="text-xs font-black text-slate-900">{t.measurements.sIzq}cm</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">S. Der</p>
+                            <p className="text-xs font-black text-slate-900">{t.measurements.sDer}cm</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Diag 1</p>
+                            <p className="text-xs font-black text-slate-900">{t.measurements.diag1}cm</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Diag 2</p>
+                            <p className="text-xs font-black text-slate-900">{t.measurements.diag2}cm</p>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -644,67 +557,28 @@ function App() {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Sidebar stats/Accións */}
-                   <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm relative overflow-hidden">
-                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">Estado do Proceso</h3>
-                     <div className="space-y-0 relative">
-                        {/* Conector Vertical */}
-                        <div className="absolute left-[15px] top-2 bottom-2 w-[2px] bg-slate-100"></div>
-                        
-                        <div className="space-y-8 relative z-10">
-                          <div className="flex items-center gap-5">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${['PENDENTE', 'PRODUCION', 'MONTAXE'].includes(selectedPedido.estado) ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-100 text-slate-400'}`}>
-                               <ClipboardList size={14} />
-                             </div>
-                             <div>
-                                <p className={`text-[11px] font-black uppercase tracking-widest ${selectedPedido.estado === 'PENDENTE' ? 'text-blue-600' : 'text-slate-400'}`}>Presuposto</p>
-                                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">
-                                  {selectedPedido.datasEstados?.PENDENTE ? formatDate(selectedPedido.datasEstados.PENDENTE) : 'Medición completada'}
-                                </p>
-                             </div>
-                           </div>
- 
-                           <div className="flex items-center gap-5">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${['PRODUCION', 'MONTAXE'].includes(selectedPedido.estado) ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-100 text-slate-400'}`}>
-                               <Settings size={14} />
-                             </div>
-                             <div>
-                                <p className={`text-[11px] font-black uppercase tracking-widest ${selectedPedido.estado === 'PRODUCION' ? 'text-blue-600' : 'text-slate-400'}`}>Produción</p>
-                                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">
-                                  {selectedPedido.datasEstados?.PRODUCION ? formatDate(selectedPedido.datasEstados.PRODUCION) : 'En fabricación'}
-                                </p>
-                             </div>
-                           </div>
- 
-                           <div className="flex items-center gap-5">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${['MONTAXE'].includes(selectedPedido.estado) ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-slate-100 text-slate-400'}`}>
-                               <CheckCircle size={14} />
-                             </div>
-                             <div>
-                                <p className={`text-[11px] font-black uppercase tracking-widest ${selectedPedido.estado === 'MONTAXE' ? 'text-emerald-600' : 'text-slate-400'}`}>Instalado</p>
-                                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">
-                                  {selectedPedido.datasEstados?.MONTAXE ? formatDate(selectedPedido.datasEstados.MONTAXE) : 'Entrega finalizada'}
-                                </p>
-                             </div>
-                          </div>
-                        </div>
-                     </div>
-                   </div>
+                  {/* Imaxes en el Sidebar */}
+                  {selectedCalculo.imaxes && selectedCalculo.imaxes.length > 0 && (
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <Box size={12} /> Fotos da Obra
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedCalculo.imaxes.map((img, idx) => (
+                          <img key={idx} src={img} className="aspect-square w-full object-cover rounded-xl border border-slate-100 shadow-sm" alt={`Obra ${idx}`} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                   {selectedPedido.estado === 'PENDENTE' && (
-                     <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100">
-                       <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-2 flex items-center gap-2">
-                         <AlertTriangle size={14} /> Pedido Editable
-                       </p>
-                       <p className="text-xs font-medium text-amber-600 leading-relaxed mb-4">Aínda podes modificar as medidas e a configuración antes de pasar a produción.</p>
-                       <button 
-                        onClick={() => loadPedidoForEditing(selectedPedido)}
-                        className="w-full bg-white text-amber-700 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-200 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
-                       >
-                         Modificar Medidas
-                       </button>
-                     </div>
-                   )}
+                  <div className="bg-blue-600 rounded-[2rem] p-6 text-white shadow-xl shadow-blue-200">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">Técnico Responsable</p>
+                    <p className="text-sm font-black truncate">{selectedCalculo.responsable}</p>
+                    <div className="mt-4 pt-4 border-t border-white/20">
+                       <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">ID Único</p>
+                       <p className="text-[10px] font-mono break-all opacity-60">{selectedCalculo.id}</p>
+                    </div>
+                  </div>
                 </div>
              </div>
            </div>
@@ -742,7 +616,7 @@ function App() {
                         </div>
                         <div>
                           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">Datos do Cliente</h2>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Información da obra {editingPedidoId && <span className="text-blue-600">(EDITANDO)</span>}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Información da obra {editingCalculoId && <span className="text-blue-600">(EDITANDO)</span>}</p>
                         </div>
                       </div>
                     </div>
@@ -829,7 +703,7 @@ function App() {
                           className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl cursor-pointer relative z-10"
                         >
                           <div className="flex items-center gap-4">
-                            <div className={`p-2 rounded-xl text-blue-600 ${toldo.isModelCollapsed ? 'bg-slate-100' : 'bg-blue-50'}`}>
+                            <div className={`p-2 rounded-xl  ${toldo.isModelCollapsed && toldo.modelo && toldo.mecanismo ? 'bg-emerald-100 text-emerald-600' : toldo.isModelCollapsed ? 'bg-slate-100 text-blue-600' : 'bg-blue-50 text-blue-600'}`}>
                               <Box size={18} />
                             </div>
                             <div className="text-left">
@@ -838,7 +712,7 @@ function App() {
                                 <p className="text-[10px] font-bold text-slate-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                                   <span className="text-blue-600 font-extrabold uppercase">{toldo.modelo || 'Sen modelo'}</span>
                                   <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                  <span className="text-slate-600">Conf: {toldo.cofre || 'Non'} · {toldo.mecanismo || 'Manual'}</span>
+                                  <span className="text-slate-600 font-bold">{toldo.mecanismo || 'Manual'} · {toldo.cofre === 'Si' ? 'Con Cofre' : 'Sen Cofre'}</span>
                                   {toldo.swbs === 'Si' && (
                                     <>
                                       <span className="w-1 h-1 bg-slate-300 rounded-full" />
@@ -899,9 +773,9 @@ function App() {
                               <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Materiais</h4>
                               {toldo.isMaterialCollapsed && (
                                 <p className="text-[10px] font-bold text-slate-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  <span className="text-amber-600 font-extrabold uppercase truncate max-w-[150px]">{toldo.tela || 'Sen lona'}</span>
+                                  <span className="text-amber-700 font-bold uppercase bg-amber-100/30 px-1.5 py-0.5 rounded border border-amber-200/50 max-w-[150px] truncate">{toldo.tela || 'Escoller lona'}</span>
                                   <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                  <span className="text-slate-600">{toldo.lacado || 'Sen lacado'}</span>
+                                  <span className="text-slate-600 font-bold">Lacado: {toldo.lacado || 'Estándar'}{toldo.cristal === 'Si' ? ' · Con Cristal' : ''}</span>
                                   {toldo.cristal === 'Si' && (
                                     <>
                                       <span className="w-1 h-1 bg-slate-300 rounded-full" />
@@ -1019,7 +893,7 @@ function App() {
               <div className="max-w-4xl mx-auto">
                 <button 
                   disabled={!canSaveOrder}
-                  onClick={handleSavePedido}
+                  onClick={handleSaveCalculo}
                   className={`w-full py-5 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-xl
                     ${!canSaveOrder 
                       ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50' 
@@ -1029,7 +903,7 @@ function App() {
                    !isToldosConfigComplete ? 'COMPLETA MATERIALES E CONFIG.' :
                    isOrderEmpty ? 'ENGADE RESULTADOS DE MEDICIÓN' :
                    isOrderBlocked ? 'REVISA ERROS DE MEDICIÓN' :
-                   (editingPedidoId ? 'ACTUALIZAR PEDIDO' : 'GARDAR PEDIDO COMPLETO')}
+                   (editingCalculoId ? 'ACTUALIZAR CÁLCULO' : 'GARDAR CÁLCULO COMPLETO')}
                   <ChevronRight size={20} strokeWidth={3} />
                 </button>
               </div>
@@ -1154,30 +1028,36 @@ function MeasurementBlock({ measurements, onUpdate, result }: { measurements: Me
           <line x1="30" y1="25" x2="180" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
           <line x1="170" y1="25" x2="20" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
 
-          {/* Etiquetas de Medida e Valores Dinámicos */}
+          {/* Etiquetas de Medida e Valores Dinámicos (Simplificados) */}
           <g className="text-[7.5px] font-black uppercase tracking-tighter">
             {/* Frente Superior */}
-            <text x="100" y="15" textAnchor="middle" className="fill-blue-600">Fr. Sup</text>
-            {measurements.fSup > 0 && <text x="100" y="22" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.fSup}cm</text>}
+            <text x="100" y="18" textAnchor="middle" className={measurements.fSup > 0 ? "fill-slate-900 text-[9px]" : "fill-blue-600"}>
+              {measurements.fSup > 0 ? `${measurements.fSup}cm` : "Fr. Sup"}
+            </text>
             
             {/* Frente Inferior */}
-            <text x="100" y="122" textAnchor="middle" className="fill-blue-600">Fr. Inf</text>
-            {measurements.fInf > 0 && <text x="100" y="115" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.fInf}cm</text>}
+            <text x="100" y="118" textAnchor="middle" className={measurements.fInf > 0 ? "fill-slate-900 text-[9px]" : "fill-blue-600"}>
+              {measurements.fInf > 0 ? `${measurements.fInf}cm` : "Fr. Inf"}
+            </text>
             
             {/* Saída Esquerda */}
-            <text x="10" y="68" textAnchor="middle" transform="rotate(-78, 10, 68)" className="fill-slate-500">S. Izq</text>
-            {measurements.sIzq > 0 && <text x="22" y="68" textAnchor="middle" transform="rotate(-78, 22, 68)" className="fill-slate-900 text-[8px]">{measurements.sIzq}cm</text>}
+            <text x="12" y="68" textAnchor="middle" transform="rotate(-78, 12, 68)" className={measurements.sIzq > 0 ? "fill-slate-900 text-[9px]" : "fill-slate-400"}>
+              {measurements.sIzq > 0 ? `${measurements.sIzq}cm` : "S. Izq"}
+            </text>
             
             {/* Saída Dereita */}
-            <text x="190" y="68" textAnchor="middle" transform="rotate(78, 190, 68)" className="fill-slate-500">S. Der</text>
-            {measurements.sDer > 0 && <text x="178" y="68" textAnchor="middle" transform="rotate(78, 178, 68)" className="fill-slate-900 text-[8px]">{measurements.sDer}cm</text>}
+            <text x="188" y="68" textAnchor="middle" transform="rotate(78, 188, 68)" className={measurements.sDer > 0 ? "fill-slate-900 text-[9px]" : "fill-slate-400"}>
+              {measurements.sDer > 0 ? `${measurements.sDer}cm` : "S. Der"}
+            </text>
             
             {/* Diagonales */}
-            <text x="70" y="58" textAnchor="middle" className="fill-amber-500">D1</text>
-            {measurements.diag1 > 0 && <text x="70" y="65" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.diag1}cm</text>}
+            <text x="75" y="64" textAnchor="middle" className={measurements.diag1 > 0 ? "fill-slate-900 text-[9px]" : "fill-amber-500"}>
+              {measurements.diag1 > 0 ? `${measurements.diag1}cm` : "D1"}
+            </text>
             
-            <text x="130" y="58" textAnchor="middle" className="fill-amber-500">D2</text>
-            {measurements.diag2 > 0 && <text x="130" y="65" textAnchor="middle" className="fill-slate-900 text-[8px]">{measurements.diag2}cm</text>}
+            <text x="125" y="64" textAnchor="middle" className={measurements.diag2 > 0 ? "fill-slate-900 text-[9px]" : "fill-amber-500"}>
+              {measurements.diag2 > 0 ? `${measurements.diag2}cm` : "D2"}
+            </text>
           </g>
 
           {/* Puntos de anclaje (Vértices) */}

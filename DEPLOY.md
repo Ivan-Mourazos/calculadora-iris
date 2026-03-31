@@ -1,12 +1,5 @@
 # Guía de Despliegue para IT - Calculadora Iris
 
-Esta guía detalla los pasos para poner en marcha la aplicación en un entorno de servidor que ya dispone de **Node.js** instalado.
-
-## Requisitos Previos
-
-- **Node.js** (versión 18 o superior recomendada).
-- Acceso al repositorio del proyecto.
-
 ## Pasos para el Despliegue
 
 Sigue estos comandos en la terminal desde la raíz del proyecto:
@@ -52,6 +45,3 @@ server {
     }
 }
 ```
-
-### Variables de Entorno
-Si la aplicación necesita conectarse a una API, asegúrate de crear un archivo `.env` basado en `.env.example` en la raíz del proyecto antes de ejecutar `npm run build`.

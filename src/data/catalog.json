@@ -67,7 +67,7 @@
     "ACR SIROCO", "ACR SOL", "ACR ST ANDREWS", "ACR STILO BRISA"
   ],
   "lacados": ["Blanco", "RAL 7016 Antracita", "RAL 9005 Negro", "RAL 9010 Blanco Nieve", "RAL 8014 Marrón", "Plata", "Bronce"],
-  "cofre": ["Non", "Si", "Pequeño", "Normal"],
+  "cofre": ["Si", "Non"],
   "mecanismo": ["Máquina/Manivela", "Motor"],
   "swbs": ["Si", "Non"],
   "entreParedes": ["Si", "Non"],
