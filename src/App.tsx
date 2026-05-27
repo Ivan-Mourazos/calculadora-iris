@@ -58,35 +58,39 @@ function App() {
     }
   }
 
-  let pA = { x: 40, y: 25 };
-  let pB = { x: 160, y: 25 };
-  let pC = { x: 170, y: 105 };
-  let pD = { x: 30, y: 105 };
+  // Default static coordinates (perfect rectangle - no slanted sides)
+  let pA = { x: 15, y: 14 };
+  let pB = { x: 185, y: 14 };
+  let pC = { x: 185, y: 115 };
+  let pD = { x: 15, y: 115 };
 
-  if (isFormComplete && validation && validation.isPossible) {
+  // Only distort drawing in step 2 (fabrication offsets view)
+  if (step === 'desfases' && isFormComplete && validation && validation.isPossible) {
     const { fSup } = measurements;
     const { h1, h2, dirX1, dirX2 } = validation.details;
 
+    const multiplier = 5.0; // Exaggerate offsets in the drawing to make them highly visible
     const lA = { x: 0, y: 0 };
     const lB = { x: fSup, y: 0 };
-    const lC = { x: fSup + dirX2, y: h2 };
-    const lD = { x: dirX1, y: h1 };
+    const lC = { x: fSup + dirX2 * multiplier, y: h2 };
+    const lD = { x: -dirX1 * multiplier, y: h1 };
 
-    const minX = Math.min(0, dirX1, fSup + dirX2);
-    const maxX = Math.max(0, fSup, fSup + dirX2);
+    const minX = Math.min(0, fSup, fSup + dirX2 * multiplier, -dirX1 * multiplier);
+    const maxX = Math.max(0, fSup, fSup + dirX2 * multiplier, -dirX1 * multiplier);
     const minY = 0;
     const maxY = Math.max(h1, h2);
 
     const W = maxX - minX || 1;
     const H = maxY - minY || 1;
 
-    const targetW = 130;
-    const targetH = 75;
+    // Bigger target bounds for dynamic drawing
+    const targetW = 170;
+    const targetH = 101;
 
     const scale = Math.min(targetW / W, targetH / H);
 
-    const offsetX = 35 + (targetW - W * scale) / 2 - minX * scale;
-    const offsetY = 25 + (targetH - H * scale) / 2 - minY * scale;
+    const offsetX = 15 + (targetW - W * scale) / 2 - minX * scale;
+    const offsetY = 14 + (targetH - H * scale) / 2 - minY * scale;
 
     pA = { x: lA.x * scale + offsetX, y: lA.y * scale + offsetY };
     pB = { x: lB.x * scale + offsetX, y: lB.y * scale + offsetY };
@@ -94,19 +98,20 @@ function App() {
     pD = { x: lD.x * scale + offsetX, y: lD.y * scale + offsetY };
   }
 
+  // Adjust text positions close to lines (dy="-4" shifts it perpendicular to line)
   const fSupX = (pA.x + pB.x) / 2;
-  const fSupY = Math.min(pA.y, pB.y) - 6;
+  const fSupY = Math.min(pA.y, pB.y) - 5;
 
   const fInfX = (pC.x + pD.x) / 2;
-  const fInfY = Math.max(pC.y, pD.y) + 12;
+  const fInfY = Math.max(pC.y, pD.y) + 11;
 
-  const sIzqX = (pA.x + pD.x) / 2 - 10;
+  const sIzqX = (pA.x + pD.x) / 2 - 8;
   const sIzqY = (pA.y + pD.y) / 2;
-  const angleIzq = Math.atan2(pD.y - pA.y, pD.x - pA.x) * 180 / Math.PI - 90;
+  const angleIzq = Math.atan2(pD.y - pA.y, pD.x - pA.x) * 180 / Math.PI - 180;
 
-  const sDerX = (pB.x + pC.x) / 2 + 10;
+  const sDerX = (pB.x + pC.x) / 2 + 8;
   const sDerY = (pB.y + pC.y) / 2;
-  const angleDer = Math.atan2(pC.y - pB.y, pC.x - pB.x) * 180 / Math.PI - 90;
+  const angleDer = Math.atan2(pC.y - pB.y, pC.x - pB.x) * 180 / Math.PI - 180;
 
   const diag1X = pA.x + (pC.x - pA.x) * 0.35;
   const diag1Y = pA.y + (pC.y - pA.y) * 0.45;
@@ -118,7 +123,7 @@ function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-16 selection:bg-blue-100">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
-        <div className="max-w-xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
               src="/faviconTGM.png"
@@ -148,7 +153,7 @@ function App() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
         {/* Diagrama SVG interactivo */}
         <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm relative overflow-hidden">
@@ -170,20 +175,136 @@ function App() {
             )}
           </div>
 
-          <div className="relative aspect-[16/10] bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center justify-center p-2">
+          <div className="relative aspect-[16/9] bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center justify-center p-3">
             <svg viewBox="0 0 200 130" className="w-full h-full drop-shadow-sm">
-              {/* Sombra base */}
+              {/* Sombra base (sin esquinas redondeadas) */}
               <path d={`M ${pA.x},${pA.y} L ${pB.x},${pB.y} L ${pC.x},${pC.y} L ${pD.x},${pD.y} Z`} fill="#e2e8f0" opacity="0.3" />
 
-              {/* O Trapezoide dinámico */}
-              <path d={`M ${pA.x},${pA.y} L ${pB.x},${pB.y} L ${pC.x},${pC.y} L ${pD.x},${pD.y} Z`} fill="#ffffff" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />
+              {/* O Trapezoide dinámico (líneas finas, sin esquinas redondeadas) */}
+              <path d={`M ${pA.x},${pA.y} L ${pB.x},${pB.y} L ${pC.x},${pC.y} L ${pD.x},${pD.y} Z`} fill="#ffffff" stroke="#3b82f6" strokeWidth="1" strokeLinejoin="miter" />
+
+              {/* Rectángulo de referencia e liñas de desfase no paso 2 */}
+              {step === 'desfases' && offsetResult && validation && validation.details && (
+                <g>
+                  {/* Liña de base de referencia (recta horizontal teórica na base) */}
+                  <line 
+                    x1={validation.details.dirX1 < 0 ? pD.x : pA.x} 
+                    y1={pD.y} 
+                    x2={validation.details.dirX2 < 0 ? pC.x : pB.x} 
+                    y2={pC.y} 
+                    stroke="#cbd5e1" 
+                    strokeWidth="1" 
+                    strokeDasharray="3" 
+                  />
+
+                  {/* Lado Esquerdo (dinámico arriba/abaixo segundo o signo de dirX1) */}
+                  {(() => {
+                    const dirX1 = validation.details.dirX1;
+                    const isLeftInward = dirX1 < 0; // dirX1 < 0 significa ángulo agudo (cara a dentro)
+                    const refX = isLeftInward ? pD.x : pA.x;
+                    const wallX = isLeftInward ? pA.x : pD.x;
+                    const labelY = isLeftInward ? pA.y - 8 : pD.y + 9;
+                    const arrowY = isLeftInward ? pA.y - 2.5 : pD.y + 4.5;
+                    const lineY = isLeftInward ? pA.y : pD.y;
+
+                    return (
+                      <g>
+                        {/* Liña vertical de referencia */}
+                        <line x1={refX} y1={pA.y} x2={refX} y2={pD.y} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3" />
+                        {/* Liña horizontal de desfase (vermella) */}
+                        <line x1={refX} y1={lineY} x2={wallX} y2={lineY} stroke="#f43f5e" strokeWidth="1.5" />
+                        {/* Símbolo de frecha indicador de dirección */}
+                        {offsetResult.offsetL > 0.05 && (
+                          <text
+                            x={(refX + wallX) / 2}
+                            y={arrowY}
+                            textAnchor="middle"
+                            className="fill-rose-600 text-[6px] font-medium"
+                          >
+                            {wallX < refX ? '←' : '→'}
+                          </text>
+                        )}
+                        {/* Texto do desfase */}
+                        {offsetResult.offsetL > 0.05 && (
+                          <text
+                            x={(refX + wallX) / 2}
+                            y={labelY}
+                            textAnchor="middle"
+                            className="fill-rose-600 text-[5.5px] font-medium"
+                          >
+                            {`${offsetResult.offsetL.toFixed(1)} cm`}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })()}
+
+                  {/* Lado Dereito (dinámico arriba/abaixo segundo o signo de dirX2) */}
+                  {(() => {
+                    const dirX2 = validation.details.dirX2;
+                    const isRightInward = dirX2 < 0; // dirX2 < 0 significa ángulo agudo (cara a dentro)
+                    const refX = isRightInward ? pC.x : pB.x;
+                    const wallX = isRightInward ? pB.x : pC.x;
+                    const labelY = isRightInward ? pB.y - 8 : pC.y + 9;
+                    const arrowY = isRightInward ? pB.y - 2.5 : pC.y + 4.5;
+                    const lineY = isRightInward ? pB.y : pC.y;
+
+                    return (
+                      <g>
+                        {/* Liña vertical de referencia */}
+                        <line x1={refX} y1={pB.y} x2={refX} y2={pC.y} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3" />
+                        {/* Liña horizontal de desfase (vermella) */}
+                        <line x1={refX} y1={lineY} x2={wallX} y2={lineY} stroke="#f43f5e" strokeWidth="1.5" />
+                        {/* Símbolo de frecha indicador de dirección */}
+                        {offsetResult.offsetR > 0.05 && (
+                          <text
+                            x={(refX + wallX) / 2}
+                            y={arrowY}
+                            textAnchor="middle"
+                            className="fill-rose-600 text-[6px] font-medium"
+                          >
+                            {wallX < refX ? '←' : '→'}
+                          </text>
+                        )}
+                        {/* Texto do desfase */}
+                        {offsetResult.offsetR > 0.05 && (
+                          <text
+                            x={(refX + wallX) / 2}
+                            y={labelY}
+                            textAnchor="middle"
+                            className="fill-rose-600 text-[5.5px] font-medium"
+                          >
+                            {`${offsetResult.offsetR.toFixed(1)} cm`}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })()}
+                </g>
+              )}
 
               {/* Diagonais */}
-              <line x1={pA.x} y1={pA.y} x2={pC.x} y2={pC.y} stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
-              <line x1={pB.x} y1={pB.y} x2={pD.x} y2={pD.y} stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
+              <line
+                x1={pA.x}
+                y1={pA.y}
+                x2={pC.x}
+                y2={pC.y}
+                stroke={measurements.diag1 > 0 ? "#d97706" : "#cbd5e1"}
+                strokeWidth={measurements.diag1 > 0 ? "1.2" : "0.8"}
+                strokeDasharray="3"
+              />
+              <line
+                x1={pB.x}
+                y1={pB.y}
+                x2={pD.x}
+                y2={pD.y}
+                stroke={measurements.diag2 > 0 ? "#6366f1" : "#cbd5e1"}
+                strokeWidth={measurements.diag2 > 0 ? "1.2" : "0.8"}
+                strokeDasharray="3"
+              />
 
               {/* Etiquetas e valores en tempo real */}
-              <g className="text-[7px] font-black uppercase tracking-tighter">
+              <g className="text-[7px] font-medium uppercase tracking-tighter">
                 {/* Frente Superior */}
                 <text x={fSupX} y={fSupY} textAnchor="middle" className={measurements.fSup > 0 ? "fill-slate-900 text-[8px]" : "fill-blue-600"}>
                   {measurements.fSup > 0 ? `${measurements.fSup} cm` : "Fr. Sup"}
@@ -204,21 +325,52 @@ function App() {
                   {measurements.sDer > 0 ? `${measurements.sDer} cm` : "S. Der"}
                 </text>
 
-                {/* Diagonales */}
-                <text x={diag1X} y={diag1Y} textAnchor="middle" className={measurements.diag1 > 0 ? "fill-slate-900 text-[8px]" : "fill-amber-600 font-extrabold"}>
-                  {measurements.diag1 > 0 ? `${measurements.diag1} cm` : "D1"}
-                </text>
+                {/* Diagonal 1 (D1) */}
+                <g>
+                  <rect
+                    x={diag1X - 14}
+                    y={diag1Y - 5}
+                    width="28"
+                    height="10"
+                    rx="2"
+                    fill={measurements.diag1 > 0 ? "#fef3c7" : "#f1f5f9"}
+                    stroke={measurements.diag1 > 0 ? "#f59e0b" : "#e2e8f0"}
+                    strokeWidth="0.5"
+                  />
+                  <text
+                    x={diag1X}
+                    y={diag1Y + 2.5}
+                    textAnchor="middle"
+                    className={`text-[6px] font-medium ${measurements.diag1 > 0 ? "fill-amber-800" : "fill-slate-400"}`}
+                  >
+                    {measurements.diag1 > 0 ? `${measurements.diag1} cm` : "D1"}
+                  </text>
+                </g>
 
-                <text x={diag2X} y={diag2Y} textAnchor="middle" className={measurements.diag2 > 0 ? "fill-slate-900 text-[8px]" : "fill-amber-600 font-extrabold"}>
-                  {measurements.diag2 > 0 ? `${measurements.diag2} cm` : "D2"}
-                </text>
+                {/* Diagonal 2 (D2) */}
+                <g>
+                  <rect
+                    x={diag2X - 14}
+                    y={diag2Y - 5}
+                    width="28"
+                    height="10"
+                    rx="2"
+                    fill={measurements.diag2 > 0 ? "#e0e7ff" : "#f1f5f9"}
+                    stroke={measurements.diag2 > 0 ? "#6366f1" : "#e2e8f0"}
+                    strokeWidth="0.5"
+                  />
+                  <text
+                    x={diag2X}
+                    y={diag2Y + 2.5}
+                    textAnchor="middle"
+                    className={`text-[6px] font-medium ${measurements.diag2 > 0 ? "fill-indigo-800" : "fill-slate-400"}`}
+                  >
+                    {measurements.diag2 > 0 ? `${measurements.diag2} cm` : "D2"}
+                  </text>
+                </g>
               </g>
 
-              {/* Vértices */}
-              <circle cx={pA.x} cy={pA.y} r="2.5" fill="#3b82f6" />
-              <circle cx={pB.x} cy={pB.y} r="2.5" fill="#3b82f6" />
-              <circle cx={pC.x} cy={pC.y} r="2.5" fill="#3b82f6" />
-              <circle cx={pD.x} cy={pD.y} r="2.5" fill="#3b82f6" />
+              {/* Vértices eliminados para esquinas sen círculos */}
             </svg>
           </div>
         </div>
@@ -236,7 +388,7 @@ function App() {
                 <NumInput label="Saída Esquerda" value={measurements.sIzq} onChange={v => handleNumInput('sIzq', v)} icon="sE" />
                 <NumInput label="Saída Dereita" value={measurements.sDer} onChange={v => handleNumInput('sDer', v)} icon="sD" />
                 <NumInput label="Diagonal 1 (D1)" value={measurements.diag1} onChange={v => handleNumInput('diag1', v)} color="amber" icon="D1" />
-                <NumInput label="Diagonal 2 (D2)" value={measurements.diag2} onChange={v => handleNumInput('diag2', v)} color="amber" icon="D2" />
+                <NumInput label="Diagonal 2 (D2)" value={measurements.diag2} onChange={v => handleNumInput('diag2', v)} color="indigo" icon="D2" />
               </div>
             </div>
 
@@ -380,7 +532,7 @@ function NumInput({
   label: string
   value: number
   onChange: (v: string) => void
-  color?: 'blue' | 'amber'
+  color?: 'blue' | 'amber' | 'indigo'
   icon: string
 }) {
   return (
@@ -390,7 +542,9 @@ function NumInput({
       </label>
       <div className="relative">
         <div className={`absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-tighter w-6 h-6 flex items-center justify-center rounded-lg border transition-all
-          ${color === 'blue' ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
+          ${color === 'blue' ? 'bg-blue-50 border-blue-100 text-blue-600' :
+            color === 'amber' ? 'bg-amber-50 border-amber-100 text-amber-600' :
+            'bg-indigo-50 border-indigo-100 text-indigo-600'}`}>
           {icon}
         </div>
         <input
@@ -399,7 +553,10 @@ function NumInput({
           value={value === 0 ? '' : value}
           onChange={e => onChange(e.target.value)}
           placeholder="0.0"
-          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-3 py-3 text-sm font-black focus:bg-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-200"
+          className={`w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-3 py-3 text-sm font-black focus:bg-white outline-none transition-all placeholder:text-slate-200
+            ${color === 'blue' ? 'focus:border-blue-500' :
+              color === 'amber' ? 'focus:border-amber-500' :
+              'focus:border-indigo-500'}`}
         />
       </div>
     </div>

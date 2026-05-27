@@ -104,9 +104,9 @@ export function validateCommercialMeasurements(m: Measurements): MeasurementVali
 
   if (!fSup || !fInf || !sIzq || !sDer || !diag1 || !diag2) return null;
 
-  // Verify triangle inequality
-  const t1Possible = (fSup + sIzq > diag1) && (fSup + diag1 > sIzq) && (sIzq + diag1 > fSup);
-  const t2Possible = (fSup + sDer > diag2) && (fSup + diag2 > sDer) && (sDer + diag2 > fSup);
+  // Verify triangle inequality (Triangle 1 is completed by diag2, Triangle 2 by diag1)
+  const t1Possible = (fSup + sIzq > diag2) && (fSup + diag2 > sIzq) && (sIzq + diag2 > fSup);
+  const t2Possible = (fSup + sDer > diag1) && (fSup + diag1 > sDer) && (sDer + diag1 > fSup);
 
   if (!t1Possible || !t2Possible) {
     return {
@@ -120,8 +120,8 @@ export function validateCommercialMeasurements(m: Measurements): MeasurementVali
   }
 
   // Trigonometry
-  const cos_theta1 = (sIzq * sIzq + fSup * fSup - diag1 * diag1) / (2 * sIzq * fSup);
-  const cos_theta2 = (sDer * sDer + fSup * fSup - diag2 * diag2) / (2 * sDer * fSup);
+  const cos_theta1 = (sIzq * sIzq + fSup * fSup - diag2 * diag2) / (2 * sIzq * fSup);
+  const cos_theta2 = (sDer * sDer + fSup * fSup - diag1 * diag1) / (2 * sDer * fSup);
 
   if (Math.abs(cos_theta1) > 1 || Math.abs(cos_theta2) > 1) {
     return {
