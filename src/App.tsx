@@ -58,6 +58,62 @@ function App() {
     }
   }
 
+  let pA = { x: 40, y: 25 };
+  let pB = { x: 160, y: 25 };
+  let pC = { x: 170, y: 105 };
+  let pD = { x: 30, y: 105 };
+
+  if (isFormComplete && validation && validation.isPossible) {
+    const { fSup } = measurements;
+    const { h1, h2, dirX1, dirX2 } = validation.details;
+
+    const lA = { x: 0, y: 0 };
+    const lB = { x: fSup, y: 0 };
+    const lC = { x: fSup + dirX2, y: h2 };
+    const lD = { x: dirX1, y: h1 };
+
+    const minX = Math.min(0, dirX1, fSup + dirX2);
+    const maxX = Math.max(0, fSup, fSup + dirX2);
+    const minY = 0;
+    const maxY = Math.max(h1, h2);
+
+    const W = maxX - minX || 1;
+    const H = maxY - minY || 1;
+
+    const targetW = 130;
+    const targetH = 75;
+
+    const scale = Math.min(targetW / W, targetH / H);
+
+    const offsetX = 35 + (targetW - W * scale) / 2 - minX * scale;
+    const offsetY = 25 + (targetH - H * scale) / 2 - minY * scale;
+
+    pA = { x: lA.x * scale + offsetX, y: lA.y * scale + offsetY };
+    pB = { x: lB.x * scale + offsetX, y: lB.y * scale + offsetY };
+    pC = { x: lC.x * scale + offsetX, y: lC.y * scale + offsetY };
+    pD = { x: lD.x * scale + offsetX, y: lD.y * scale + offsetY };
+  }
+
+  const fSupX = (pA.x + pB.x) / 2;
+  const fSupY = Math.min(pA.y, pB.y) - 6;
+
+  const fInfX = (pC.x + pD.x) / 2;
+  const fInfY = Math.max(pC.y, pD.y) + 12;
+
+  const sIzqX = (pA.x + pD.x) / 2 - 10;
+  const sIzqY = (pA.y + pD.y) / 2;
+  const angleIzq = Math.atan2(pD.y - pA.y, pD.x - pA.x) * 180 / Math.PI - 90;
+
+  const sDerX = (pB.x + pC.x) / 2 + 10;
+  const sDerY = (pB.y + pC.y) / 2;
+  const angleDer = Math.atan2(pC.y - pB.y, pC.x - pB.x) * 180 / Math.PI - 90;
+
+  const diag1X = pA.x + (pC.x - pA.x) * 0.35;
+  const diag1Y = pA.y + (pC.y - pA.y) * 0.45;
+
+  const diag2X = pB.x + (pD.x - pB.x) * 0.35;
+  const diag2Y = pB.y + (pD.y - pB.y) * 0.45;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-16 selection:bg-blue-100">
       {/* Header */}
@@ -117,52 +173,52 @@ function App() {
           <div className="relative aspect-[16/10] bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center justify-center p-2">
             <svg viewBox="0 0 200 130" className="w-full h-full drop-shadow-sm">
               {/* Sombra base */}
-              <path d="M 40,25 L 160,25 L 170,105 L 30,105 Z" fill="#e2e8f0" opacity="0.3" />
+              <path d={`M ${pA.x},${pA.y} L ${pB.x},${pB.y} L ${pC.x},${pC.y} L ${pD.x},${pD.y} Z`} fill="#e2e8f0" opacity="0.3" />
 
               {/* O Trapezoide dinámico */}
-              <path d="M 40,25 L 160,25 L 170,105 L 30,105 Z" fill="#ffffff" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />
+              <path d={`M ${pA.x},${pA.y} L ${pB.x},${pB.y} L ${pC.x},${pC.y} L ${pD.x},${pD.y} Z`} fill="#ffffff" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />
 
               {/* Diagonais */}
-              <line x1="40" y1="25" x2="170" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
-              <line x1="160" y1="25" x2="30" y2="105" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
+              <line x1={pA.x} y1={pA.y} x2={pC.x} y2={pC.y} stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
+              <line x1={pB.x} y1={pB.y} x2={pD.x} y2={pD.y} stroke="#94a3b8" strokeWidth="1" strokeDasharray="3" />
 
               {/* Etiquetas e valores en tempo real */}
               <g className="text-[7px] font-black uppercase tracking-tighter">
                 {/* Frente Superior */}
-                <text x="100" y="18" textAnchor="middle" className={measurements.fSup > 0 ? "fill-slate-900 text-[8px]" : "fill-blue-600"}>
+                <text x={fSupX} y={fSupY} textAnchor="middle" className={measurements.fSup > 0 ? "fill-slate-900 text-[8px]" : "fill-blue-600"}>
                   {measurements.fSup > 0 ? `${measurements.fSup} cm` : "Fr. Sup"}
                 </text>
 
                 {/* Frente Inferior */}
-                <text x="100" y="118" textAnchor="middle" className={measurements.fInf > 0 ? "fill-slate-900 text-[8px]" : "fill-blue-600"}>
+                <text x={fInfX} y={fInfY} textAnchor="middle" className={measurements.fInf > 0 ? "fill-slate-900 text-[8px]" : "fill-blue-600"}>
                   {measurements.fInf > 0 ? `${measurements.fInf} cm` : "Fr. Inf"}
                 </text>
 
                 {/* Saída Esquerda */}
-                <text x="22" y="68" textAnchor="middle" transform="rotate(-82, 22, 68)" className={measurements.sIzq > 0 ? "fill-slate-900 text-[8px]" : "fill-slate-400"}>
+                <text x={sIzqX} y={sIzqY} textAnchor="middle" transform={`rotate(${angleIzq}, ${sIzqX}, ${sIzqY})`} className={measurements.sIzq > 0 ? "fill-slate-900 text-[8px]" : "fill-slate-400"}>
                   {measurements.sIzq > 0 ? `${measurements.sIzq} cm` : "S. Esq"}
                 </text>
 
                 {/* Saída Dereita */}
-                <text x="178" y="68" textAnchor="middle" transform="rotate(82, 178, 68)" className={measurements.sDer > 0 ? "fill-slate-900 text-[8px]" : "fill-slate-400"}>
+                <text x={sDerX} y={sDerY} textAnchor="middle" transform={`rotate(${angleDer}, ${sDerX}, ${sDerY})`} className={measurements.sDer > 0 ? "fill-slate-900 text-[8px]" : "fill-slate-400"}>
                   {measurements.sDer > 0 ? `${measurements.sDer} cm` : "S. Der"}
                 </text>
 
                 {/* Diagonales */}
-                <text x="80" y="62" textAnchor="middle" className={measurements.diag1 > 0 ? "fill-slate-900 text-[8px]" : "fill-amber-600 font-extrabold"}>
+                <text x={diag1X} y={diag1Y} textAnchor="middle" className={measurements.diag1 > 0 ? "fill-slate-900 text-[8px]" : "fill-amber-600 font-extrabold"}>
                   {measurements.diag1 > 0 ? `${measurements.diag1} cm` : "D1"}
                 </text>
 
-                <text x="120" y="62" textAnchor="middle" className={measurements.diag2 > 0 ? "fill-slate-900 text-[8px]" : "fill-amber-600 font-extrabold"}>
+                <text x={diag2X} y={diag2Y} textAnchor="middle" className={measurements.diag2 > 0 ? "fill-slate-900 text-[8px]" : "fill-amber-600 font-extrabold"}>
                   {measurements.diag2 > 0 ? `${measurements.diag2} cm` : "D2"}
                 </text>
               </g>
 
               {/* Vértices */}
-              <circle cx="40" cy="25" r="2.5" fill="#3b82f6" />
-              <circle cx="160" cy="25" r="2.5" fill="#3b82f6" />
-              <circle cx="170" cy="105" r="2.5" fill="#3b82f6" />
-              <circle cx="30" cy="105" r="2.5" fill="#3b82f6" />
+              <circle cx={pA.x} cy={pA.y} r="2.5" fill="#3b82f6" />
+              <circle cx={pB.x} cy={pB.y} r="2.5" fill="#3b82f6" />
+              <circle cx={pC.x} cy={pC.y} r="2.5" fill="#3b82f6" />
+              <circle cx={pD.x} cy={pD.y} r="2.5" fill="#3b82f6" />
             </svg>
           </div>
         </div>
