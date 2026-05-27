@@ -263,15 +263,11 @@ function App() {
                 </div>
                 <p className="text-xs font-bold leading-tight mb-4 opacity-90">{validation.message}</p>
 
-                {validation.isPossible && (
-                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-current/10">
-                    <div className="bg-white/50 backdrop-blur-sm p-3 rounded-2xl border border-current/5 text-center">
+                 {validation.isPossible && (
+                  <div className="pt-4 border-t border-current/10 flex justify-center">
+                    <div className="bg-white/50 backdrop-blur-sm py-3 px-6 rounded-2xl border border-current/5 text-center min-w-[150px]">
                       <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-0.5">Erro na medida</p>
                       <p className="text-lg font-black">{validation.deviation.toFixed(2)}<span className="text-xs ml-0.5 font-bold">cm</span></p>
-                    </div>
-                    <div className="bg-white/50 backdrop-blur-sm p-3 rounded-2xl border border-current/5 text-center">
-                      <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-0.5">Frente Inf. Teórico</p>
-                      <p className="text-lg font-black">{validation.theoFInf.toFixed(1)}<span className="text-xs ml-0.5 font-bold">cm</span></p>
                     </div>
                   </div>
                 )}
@@ -343,13 +339,18 @@ function App() {
                   </div>
                 </div>
 
-                {/* Frente Toldo Final */}
-                <div className="bg-blue-50/50 border border-blue-100/80 p-4 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-600/80">Frente Toldo Final</p>
-                    <p className="text-xs font-bold text-slate-500 mt-0.5">Frente sup. aplicando descontos</p>
+                {/* Frente Toldo Final e Frente Inferior Teórico */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50/50 border border-blue-100/80 p-4 rounded-2xl text-center shadow-sm">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-600/80 mb-1">Frente Toldo Final</p>
+                    <p className="text-xl font-black text-blue-700">{offsetResult.frenteToldo.toFixed(1)}<span className="text-xs ml-0.5 font-bold text-blue-500">cm</span></p>
+                    <p className="text-[8px] text-slate-400 mt-1 font-bold">Frente sup. con descontos</p>
                   </div>
-                  <p className="text-2xl font-black text-blue-700">{offsetResult.frenteToldo.toFixed(1)}<span className="text-sm ml-0.5 font-bold text-blue-500">cm</span></p>
+                  <div className="bg-slate-50/80 border border-slate-100 p-4 rounded-2xl text-center shadow-sm">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Fr. Inf. Teórico</p>
+                    <p className="text-xl font-black text-slate-800">{validation?.theoFInf.toFixed(1)}<span className="text-xs ml-0.5 font-bold text-slate-500">cm</span></p>
+                    <p className="text-[8px] text-slate-400 mt-1 font-bold">Base sen erro de cota</p>
+                  </div>
                 </div>
 
                 {/* Botón de Regreso */}
